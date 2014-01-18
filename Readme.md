@@ -8,7 +8,7 @@ objc2dart is a Clang plugin. Currently this means that you need to check out Cla
 
 To set up the build for the command line:
 
-1. Follow (part or all of) [this tutorial](http://clang.llvm.org/docs/LibASTMatchersTutorial.html) to get and build Clang-LLVM.
+1. Follow step 0 of [this tutorial](http://clang.llvm.org/docs/LibASTMatchersTutorial.html) to get and build Clang.
 2. Symlink objc2dart in the Clang tools directory: `ln -s <objc2dart>/src <clang-llvm>/llvm/tools/clang/tools/extra/`.
 3. Add `add_subdirectory(objc2dart)` to `<clang-llvm>/llvm/tools/clang/tools/extra/CMakeLists.txt`.
 4. Run `ninja` in `<clang-llvm>/build`.
