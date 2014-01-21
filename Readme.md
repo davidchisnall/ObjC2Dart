@@ -23,6 +23,15 @@ If you want to generate an Xcode project:
 5. Adjust .bash_profile to `export OBJC2DART_BUILD=<clang-llvm>/xcode-build/Debug` and source.
 4. Enjoy Xcode
 
+# Unit testing it
+
+1. In your objc2dart directory, `mkdir test-bin && mkdir test-bin/unittest && cd test-bin/unittest`
+2. `cmake -G Ninja ../../test/unittest`
+
+Whenever you want to test:
+1. Make sure that objc2dart is up to date - testing will not build it
+2. Build the tests and run them with `ninja && ctest`
+
 # Using it
 
 Run `$OBJC2DART_BUILD/bin/clang -cc1 -load $OBJC2DART_BUILD/lib/libobjc2dart.dylib -plugin objc2dart <source-file>`.
