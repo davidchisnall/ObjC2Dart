@@ -20,7 +20,7 @@ If you want to generate an Xcode project:
 
 1. In your clang-llvm directory, make a directory for the Xcode project, say `mkdir xcode-build && cd xcode-build`
 2. `cmake -G Xcode ../llvm`
-5. Adjust .bash_profile to `export OBJC2DART_BUILD=<clang-llvm>/xcode-build` and source.
+5. Adjust .bash_profile to `export OBJC2DART_BUILD=<clang-llvm>/xcode-build/Debug` and source.
 4. Enjoy Xcode
 
 # Using it
