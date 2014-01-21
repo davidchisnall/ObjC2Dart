@@ -30,7 +30,7 @@ If you want to generate an Xcode project:
 
 Whenever you want to test:
 
-1. Make sure that objc2dart is up to date - testing will not build it
+1. Make sure that objc2dart is built up to date - testing will not build it!
 2. Build the tests and run them with `ninja && ctest`
 
 # Using it
