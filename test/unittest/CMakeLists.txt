@@ -25,3 +25,4 @@ enable_testing()
 
 # Add tests
 add_subdirectory(functions)
+add_subdirectory(libc)
