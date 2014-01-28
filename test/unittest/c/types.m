@@ -9,6 +9,10 @@ typedef __objc2dart__dart_class class_1;
 typedef class_1 class_2;
 typedef class_2 class_3;
 
+// Only functions can have void types, so here's a function (not just a
+// declaration, since those are stripped).
+void f() {}
+
 int main() {
   // Builtin types.
   int i;

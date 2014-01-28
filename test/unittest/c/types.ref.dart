@@ -1,3 +1,5 @@
+void f() {
+}
 void main() {
   int main() {
     int i;
