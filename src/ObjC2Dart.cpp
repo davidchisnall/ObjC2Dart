@@ -58,13 +58,10 @@ class DartWriter : public RecursiveASTVisitor<DartWriter> {
   // The output stream to which to write the Dart code.
   IndentedOutputStream OS;
 
-  std::string DartTypeAsStringForQualType(const QualType &qualType) {
-    // TODO
-    return "int";
-  }
-
 public:
   DartWriter() : RecursiveASTVisitor<DartWriter>(), OS() {}
+
+#pragma Declarations
 
   // TODO: make sure any name ok in C is ok in Dart
   // TODO: varargs
@@ -80,12 +77,12 @@ public:
       OS << "void main() {\n";
       OS.increaseIndentationLevel().indent();
     }
-    OS << DartTypeAsStringForQualType(d->getResultType()) << " " <<
-        d->getNameAsString() << "(";
+    TraverseType(d->getResultType());
+    OS << " " << d->getNameAsString() << "(";
     // Emit parameter list.
     for (FunctionDecl::param_iterator it = d->param_begin(),
          end = d->param_end(); it != end; ++it) {
-      OS << (*it)->getNameAsString();
+      TraverseDecl(*it);
       if (it + 1 != end) {
         OS << ", ";
       }
@@ -101,6 +98,21 @@ public:
     }
     return true;
   }
+
+  bool TraverseParmVarDecl(ParmVarDecl *d) {
+    return TraverseVarDecl(d);
+  }
+
+  bool TraverseVarDecl(VarDecl *d) {
+    if (TraverseType(d->getType())) {
+      OS << " " << d->getNameAsString();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+#pragma mark Statements
 
   bool TraverseCompoundStmt(CompoundStmt *s) {
     OS << "{\n";
@@ -118,10 +130,30 @@ public:
     return true;
   }
 
+#pragma mark Types
+
+  bool TraverseBuiltinType(BuiltinType *t) {
+    if (t->isVoidType()) {
+      OS << "void";
+    } else if (t->isIntegerType()) {
+      OS << "int";
+    }
+    return true;
+  }
+
+  bool TraverseTypedefType(TypedefType *t) {
+    OS << t->getDecl()->getNameAsString();
+    return true;
+  }
+
+#pragma mark Return
+
   bool TraverseReturnStmt(ReturnStmt *s) {
     OS << "return ";
     return TraverseStmt(s->getRetValue());
   }
+
+#pragma mark Literals
 
   bool VisitIntegerLiteral(IntegerLiteral *il) {
     OS << il->getValue();
