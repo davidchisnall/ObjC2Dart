@@ -61,7 +61,7 @@ class DartWriter : public RecursiveASTVisitor<DartWriter> {
 public:
   DartWriter() : RecursiveASTVisitor<DartWriter>(), OS() {}
 
-#pragma Declarations
+#pragma mark Declarations
 
   // TODO: make sure any name ok in C is ok in Dart
   // TODO: varargs
