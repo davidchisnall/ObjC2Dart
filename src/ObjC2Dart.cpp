@@ -142,7 +142,16 @@ public:
   }
 
   bool TraverseTypedefType(TypedefType *t) {
-    OS << t->getDecl()->getNameAsString();
+    const std::string dartClassName = "__objc2dart__dart_class";
+    QualType source = t->getDecl()->getTypeSourceInfo()->getType();
+    // Stop following the typedef chain before dartClassName.
+    if (t->getDecl()->getNameAsString() == dartClassName) {
+      OS << "var";
+    } else if (source.getAsString() == dartClassName) {
+      OS << t->getDecl()->getNameAsString();
+    } else {
+      return TraverseType(source);
+    }
     return true;
   }
 

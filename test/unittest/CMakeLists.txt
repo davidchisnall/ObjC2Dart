@@ -24,5 +24,5 @@ endmacro (add_diff_test)
 enable_testing()
 
 # Add tests
-add_subdirectory(functions)
+add_subdirectory(c)
 add_subdirectory(libc)
