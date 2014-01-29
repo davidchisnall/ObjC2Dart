@@ -82,7 +82,9 @@ public:
     // Emit parameter list.
     for (FunctionDecl::param_iterator it = d->param_begin(),
          end = d->param_end(); it != end; ++it) {
-      TraverseDecl(*it);
+      if (!TraverseDecl(*it)) {
+        return false;
+      }
       if (it + 1 != end) {
         OS << ", ";
       }
@@ -127,6 +129,31 @@ public:
     }
     OS.decreaseIndentationLevel().indent() << "}\n";
     OS.indent();
+    return true;
+  }
+
+#pragma mark Expressions
+
+  bool TraverseCallExpr(CallExpr *e) {
+    if (!TraverseStmt(e->getCallee())) {
+      return false;
+    }
+    OS << "(";
+    for (CallExpr::arg_iterator it = e->arg_begin(), end = e->arg_end();
+         it != end; ++it) {
+      if (!TraverseStmt(*it)) {
+        return false;
+      }
+      if (it + 1 != end) {
+        OS << ", ";
+      }
+    }
+    OS << ")";
+    return true;
+  }
+
+  bool TraverseDeclRefExpr(DeclRefExpr *e) {
+    OS << e->getDecl()->getNameAsString();
     return true;
   }
 
