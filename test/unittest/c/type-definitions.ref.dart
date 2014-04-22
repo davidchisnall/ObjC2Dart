@@ -4,6 +4,8 @@ void f() {
 void main() {
   C__TYPE_Int64 main() {
     C__TYPE_Int64 i;
+    C__TYPE_Pointer pInt;
+    C__TYPE_Pointer pVoid;
     C__TYPE_Int64 i1;
     C__TYPE_Int64 i2;
     var c;

@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import '../libc/stdlib.dart';
 import '../libc/string.dart';
 
 /**
@@ -137,7 +136,6 @@ abstract class C__TYPE {
     if (definition != newValue.definition) {
       throw new UnsupportedError("Types must explicitly be casted before assigning");
     }
-    C__memset(pointer(), 0, definition.byteSize);
     C__memcpy(pointer(), newValue.pointer(), definition.byteSize);
   }
   
@@ -150,7 +148,8 @@ abstract class C__TYPE {
 }
 
 /**
- * Represents a void type.
+ * Represents an unknown type.
+ * Note: Only used internally, for pointers.
  */
 class C__TYPE_Void extends C__TYPE {
   C__TYPE_Void(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.void_t, memory, offset);

@@ -168,11 +168,16 @@ public:
 
 #pragma mark Types
 
+  bool TraversePointerType(PointerType *t) {
+    OS << "C__TYPE_Pointer";
+    return true;
+  }
+
   bool TraverseBuiltinType(BuiltinType *t) {
     if (t->isVoidType()) {
       OS << "void";
-    } else if (t->isIntegerType()) {
-      OS << "int";
+    } else if (t->isSignedInteger()) {
+      OS << "C__TYPE_Int64";
     }
     return true;
   }
@@ -201,7 +206,7 @@ public:
 #pragma mark Literals
 
   bool VisitIntegerLiteral(IntegerLiteral *il) {
-    OS << il->getValue();
+    OS << "(new C__TYPE_IntegerLiteral(" << il->getValue() << "))";
     return true;
   }
 };

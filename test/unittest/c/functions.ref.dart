@@ -1,12 +1,13 @@
+import 'package:this/c/types.dart';
 void void_f() {
 }
-int int_f() {
-  return 1;
+C__TYPE_Int64 int_f() {
+  return (new C__TYPE_IntegerLiteral(1));
 }
-void args(int a, int b) {
+void args(C__TYPE_Int64 a, C__TYPE_Int64 b) {
 }
-int call() {
+C__TYPE_Int64 call() {
   void_f();
-  args(0, 1);
+  args((new C__TYPE_IntegerLiteral(0)), (new C__TYPE_IntegerLiteral(1)));
   return int_f();
 }

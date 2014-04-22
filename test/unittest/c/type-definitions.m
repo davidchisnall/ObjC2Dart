@@ -17,6 +17,10 @@ int main() {
   // Builtin types.
   int i;
 
+  // Pointer types.
+  int *pInt;
+  void *pVoid;
+
   // Typedefs.
   int_1 i1;
   int_2 i2;
