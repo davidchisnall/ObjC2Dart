@@ -1,6 +1,6 @@
 #include <stdarg.h>
 
-// A function declaration.
+// A function declaration (should not be translated).
 
 void decl();
 

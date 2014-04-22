@@ -12,3 +12,4 @@ int argN(int n, ...) {
   va_end(ap);
   return arg;
 }
+

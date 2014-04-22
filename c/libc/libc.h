@@ -9,4 +9,9 @@
  */
 typedef struct {} __objc2dart__dart_class;
 
+/**
+ * Size type.
+ */
+typedef int size_t;
+
 #endif /* LIBC_H */
