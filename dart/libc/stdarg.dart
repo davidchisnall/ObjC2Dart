@@ -1,5 +1,3 @@
-library stdarg;
-
 /**
  * Abstract superclass to be used in simulating variadic functions.
  * 
