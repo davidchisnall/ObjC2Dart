@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import '../libc/stdlib.dart';
+import '../libc/string.dart';
 
 /**
  * Represents a piece of memory.
@@ -35,7 +37,6 @@ class C__Memory {
   }
 }
 
-
 /**
  * Represents basic C types.
  */
@@ -62,9 +63,9 @@ class C__TYPE_DEFINITION {
     byteSize = byteSize;
   
   /**
-   * Return a new instance of the type.
+   * Return a new instance of the type at the given memory location.
    */
-  C__TYPE create(C__Memory memory, int offset) {
+  C__TYPE at(C__Memory memory, int offset) {
     if (this == C__TYPE_DEFINITION.int64_t) {
       return new C__TYPE_Int64(memory, offset);
     }
@@ -76,7 +77,7 @@ class C__TYPE_DEFINITION {
    * Returns a type definition for void.
    */
   static C__TYPE_DEFINITION get void_t => _void;
-  static C__TYPE_DEFINITION _void = new C__TYPE_DEFINITION(isVoid: true);
+  static C__TYPE_DEFINITION _void = new C__TYPE_DEFINITION(isVoid: true, byteSize: 0);
   
   /**
    * Returns a type definition for a pointer.
@@ -91,7 +92,6 @@ class C__TYPE_DEFINITION {
   static C__TYPE_DEFINITION _int64 =
       new C__TYPE_DEFINITION(isNumber: true, isSigned: true, byteSize: 8);
 }
-
 
 /**
  * Common superclass for all C types.
@@ -116,6 +116,11 @@ abstract class C__TYPE {
   int _offset;
   
   /**
+   * The address.
+   */
+  int get address => memory.baseAddress + offset;
+  
+  /**
    * A view on the memory at the offset.
    */
   ByteData get view => _view;
@@ -128,52 +133,84 @@ abstract class C__TYPE {
     _definition = definition, _memory = memory, _offset = offset, 
     _view = new ByteData.view(memory.data, offset);
   
+  C__TYPE set(C__TYPE newValue) {
+    if (definition != newValue.definition) {
+      throw new UnsupportedError("Types must explicitly be casted before assigning");
+    }
+    C__memset(pointer(), 0, definition.byteSize);
+    C__memcpy(pointer(), newValue.pointer(), definition.byteSize);
+  }
+  
   /**
    * Returns a C pointer to this instance.
    */
-  C__TYPE_Pointer pointer();
+  C__TYPE_Pointer pointer() {
+    return new C__TYPE_Pointer.toObject(this);
+  }
 }
 
+/**
+ * Represents a void type.
+ */
+class C__TYPE_Void extends C__TYPE {
+  C__TYPE_Void(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.void_t, memory, offset);
+}
 
 /**
  * Represents a 64-bit integer.
  */
 class C__TYPE_Int64 extends C__TYPE {
-  
   C__TYPE_Int64(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.int64_t, memory, offset);
-  
-  C__TYPE_Pointer pointer() {
-    // TODO
-    return null;
-  }
-  
-  C__TYPE setLiteral(int literal) {
+}
+
+/**
+ * Represents an integer literal.
+ */
+class C__TYPE_IntegerLiteral extends C__TYPE_Int64 {
+  C__TYPE_IntegerLiteral(int literal) : 
+    super(new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0) {
     view.setInt64(0, literal);
   }
   
-  int getLiteral() {
-    return view.getInt64(0);
+  C__TYPE set(C__TYPE newValue) {
+    throw new UnsupportedError("Cannot set literal");
   }
 }
-
 
 /**
  * Represents a pointer.
  */
-// TODO
 class C__TYPE_Pointer extends C__TYPE {
+  /*
+   * The object this pointer points to.
+   */
+  C__TYPE get pointee => _pointee;
+  C__TYPE _pointee;
+  
+  /**
+   * Initialises a new pointer not pointing anywhere in particular.
+   */
   C__TYPE_Pointer(C__Memory memory, int offset) :
     super(C__TYPE_DEFINITION.pointer_t, memory, offset);
   
-  C__TYPE_Pointer pointer() {
-    return null;
+  /**
+   * Initialises a pointer pointing to the given object.
+   */
+  C__TYPE_Pointer.toObject(C__TYPE pointee) : 
+    super(C__TYPE_DEFINITION.pointer_t, new C__Memory(C__TYPE_DEFINITION.pointer_t.byteSize), 0), 
+    _pointee = pointee {
+    view.setInt64(0, pointee.address);
   }
-}
-
-
-/**
- * Allocates |bytes| bytes of memory.
- */
-C__TYPE_Pointer C__malloc(int bytes) {
-  // TODO
+  
+  /**
+   * Initialises a pointer pointing to an area of memory.
+   */
+  C__TYPE_Pointer.toMemory(C__Memory memory, int offset) :
+    this.toObject(new C__TYPE_Void(memory, offset));
+  
+  C__TYPE set(C__TYPE newValue) {
+    super.set(newValue);
+    C__TYPE_Pointer newPointer = newValue;
+    _pointee = newPointer.pointee;
+  }
 }
