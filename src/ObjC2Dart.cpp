@@ -59,7 +59,16 @@ class DartWriter : public RecursiveASTVisitor<DartWriter> {
   IndentedOutputStream OS;
 
 public:
-  DartWriter() : RecursiveASTVisitor<DartWriter>(), OS() {}
+  DartWriter() : RecursiveASTVisitor<DartWriter>(), OS() {
+    EmitDefaultImports();
+  }
+
+#pragma mark Imports
+
+  void EmitDefaultImports() {
+    // C types.
+    OS << "import 'package:this/c/types.dart';\n";
+  }
 
 #pragma mark Declarations
 
