@@ -114,13 +114,34 @@ public:
     return TraverseVarDecl(d);
   }
 
+  bool supressVarDeclType = false;
+
   bool TraverseVarDecl(VarDecl *d) {
-    if (TraverseType(d->getType())) {
+    if (supressVarDeclType || TraverseType(d->getType())) {
       OS << " " << d->getNameAsString();
       return true;
     } else {
       return false;
     }
+  }
+
+  bool TraverseDeclStmt(DeclStmt *d) {
+    bool first = true;
+    bool savedSupressVarDeclType = supressVarDeclType;
+    for (DeclStmt::decl_iterator i = d->decl_begin(); i != d->decl_end(); ++i) {
+      if (first) {
+        first = false;
+      } else {
+        OS << ", ";
+        supressVarDeclType = true;
+      }
+      if (!TraverseDecl(*i)) {
+        supressVarDeclType = savedSupressVarDeclType;
+        return false;
+      }
+    }
+    supressVarDeclType = savedSupressVarDeclType;
+    return true;
   }
 
 #pragma mark Statements

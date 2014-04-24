@@ -28,4 +28,7 @@ int main() {
   class_1 c1;
   class_2 c2;
   class_3 c3;
+
+  // Comma separated.
+  int i3, i4;
 }

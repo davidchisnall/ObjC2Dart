@@ -12,6 +12,7 @@ void main() {
     class_1 c1;
     class_1 c2;
     class_1 c3;
+    C__TYPE_Int64 i3,  i4;
   }
   main();
 }
