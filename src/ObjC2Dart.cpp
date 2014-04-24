@@ -168,6 +168,23 @@ public:
 
 #pragma mark Types
 
+  bool TraverseConstantArrayType(ArrayType *t) {
+    return TraverseArrayType(t);
+  }
+
+  bool TraverseVariableArrayType(ArrayType *t) {
+    return TraverseArrayType(t);
+  }
+
+  bool TraverseIncompleteArrayType(ArrayType *t) {
+    return TraverseArrayType(t);
+  }
+
+  bool TraverseArrayType(ArrayType *t) {
+    OS << "C__TYPE_Pointer";
+    return true;
+  }
+
   bool TraversePointerType(PointerType *t) {
     OS << "C__TYPE_Pointer";
     return true;

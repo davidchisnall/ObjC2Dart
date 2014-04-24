@@ -13,9 +13,22 @@ int int_f() {
   return 1;
 }
 
-// Function with arguments.
+// Function with int arguments.
 
 void args(int a, int b) {
+}
+
+// Function with pointer arguments.
+
+void argsp(int *a, int *b) {
+}
+
+// Functions with array arguments.
+
+void argsa1(int a[], int b[]) {
+}
+
+void argsa2(int a[1], int b[2]) {
 }
 
 // Function calling other functions.
