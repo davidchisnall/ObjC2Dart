@@ -2,7 +2,7 @@ import 'package:this/c/types.dart';
 void void_f() {
 }
 C__TYPE_Int64 int_f() {
-  return (new C__TYPE_IntegerLiteral(1));
+  return (new C__TYPE_Int64.literal(1));
 }
 void args(C__TYPE_Int64 a, C__TYPE_Int64 b) {
 }
@@ -14,6 +14,13 @@ void argsa2(C__TYPE_Pointer a, C__TYPE_Pointer b) {
 }
 C__TYPE_Int64 call() {
   void_f();
-  args((new C__TYPE_IntegerLiteral(0)), (new C__TYPE_IntegerLiteral(1)));
+  C__TYPE_Int64 x = (new C__TYPE_Int64.literal(1));
+  args((new C__TYPE_Int64.literal(0)), x);
   return int_f();
+}
+void main() {
+  C__TYPE_Int64 main() {
+    return (new C__TYPE_Int64.literal(0));
+  }
+  main();
 }

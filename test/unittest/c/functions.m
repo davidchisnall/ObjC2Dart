@@ -35,13 +35,8 @@ void argsa2(int a[1], int b[2]) {
 
 int call() {
   void_f();
-// TODO: enable this when assignment/initialization is done properly.
-#if 0
   int x = 1;
   args(0, x);
-#else
-  args(0, 1);
-#endif
   return int_f();
 }
 
@@ -67,3 +62,7 @@ void varargs2(int a, int b, ...) {
   va_end(list);
 }
 #endif
+
+int main() {
+  return 0;
+}

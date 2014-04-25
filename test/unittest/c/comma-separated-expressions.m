@@ -1,6 +1,9 @@
-int main() {
+int cse() {
   int a;
   int b;
-  a = 0, b = 1;
+  return a = 1, b = 2;
+}
+
+int main() {
   return 0;
 }
