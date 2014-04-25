@@ -54,12 +54,18 @@ public:
   }
 };
 
+class CerrOutputStream : public llvm::raw_fd_ostream {
+public:
+  CerrOutputStream() : llvm::raw_fd_ostream(STDERR_FILENO, false, true) {}
+};
+
 class DartWriter : public RecursiveASTVisitor<DartWriter> {
   // The output stream to which to write the Dart code.
   IndentedOutputStream OS;
+  CerrOutputStream cerr;
 
 public:
-  DartWriter() : RecursiveASTVisitor<DartWriter>(), OS() {
+  DartWriter() : RecursiveASTVisitor<DartWriter>(), OS(), cerr() {
     EmitDefaultImports();
   }
 
@@ -146,6 +152,16 @@ public:
 
 #pragma mark Statements
 
+  bool TraverseStmt(Stmt *s) {
+    if (!s) {
+      return true;
+    } else if (s->getStmtClass() == Stmt::BinaryOperatorClass) {
+      return TraverseBinaryOperator(static_cast<BinaryOperator *>(s));
+    } else {
+      return RecursiveASTVisitor::TraverseStmt(s);
+    }
+  }
+
   bool TraverseCompoundStmt(CompoundStmt *s) {
     OS << "{\n";
     OS.increaseIndentationLevel();
@@ -185,6 +201,33 @@ public:
   bool TraverseDeclRefExpr(DeclRefExpr *e) {
     OS << e->getDecl()->getNameAsString();
     return true;
+  }
+
+  bool TraverseBinaryOperator(BinaryOperator *o) {
+    if (o->getOpcode() == BO_Comma) {
+      // There can be no definitions in it, so wrap it in a closure.
+      OS << "(){ ";
+      if (!TraverseStmt(o->getLHS())) {
+        return false;
+      }
+      OS << "; return ";
+      if (!TraverseStmt(o->getRHS())) {
+        return false;
+      }
+      OS << "; }()";
+      return true;
+    } else {
+      if (!TraverseStmt(o->getLHS())) {
+        return false;
+      }
+      OS << " " << o->getOpcodeStr(o->getOpcode()) << " ";
+      return TraverseStmt(o->getRHS());
+    }
+  }
+
+  bool TraverseUnaryOperator(UnaryOperator *o) {
+    OS << o->getOpcodeStr(o->getOpcode()) << " ";
+    return TraverseStmt(o->getSubExpr());
   }
 
 #pragma mark Types
