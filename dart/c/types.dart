@@ -132,11 +132,20 @@ abstract class C__TYPE {
     _definition = definition, _memory = memory, _offset = offset, 
     _view = new ByteData.view(memory.data, offset);
   
+  /**
+   * Allocate a new instance on the stack.
+   */
+  C__TYPE.local();
+  
+  /**
+   * Sets the given value in the memory of the variable.
+   */
   C__TYPE set(C__TYPE newValue) {
     if (definition != newValue.definition) {
       throw new UnsupportedError("Types must explicitly be casted before assigning");
     }
     C__memcpy(pointer(), newValue.pointer(), definition.byteSize);
+    return this;
   }
   
   /**
@@ -153,6 +162,8 @@ abstract class C__TYPE {
  */
 class C__TYPE_Void extends C__TYPE {
   C__TYPE_Void(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.void_t, memory, offset);
+  
+  C__TYPE_Void.local() : this(new C__Memory(C__TYPE_DEFINITION.void_t.byteSize), 0);
 }
 
 /**
@@ -160,19 +171,15 @@ class C__TYPE_Void extends C__TYPE {
  */
 class C__TYPE_Int64 extends C__TYPE {
   C__TYPE_Int64(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.int64_t, memory, offset);
-}
-
-/**
- * Represents an integer literal.
- */
-class C__TYPE_IntegerLiteral extends C__TYPE_Int64 {
-  C__TYPE_IntegerLiteral(int literal) : 
-    super(new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0) {
-    view.setInt64(0, literal);
-  }
   
-  C__TYPE set(C__TYPE newValue) {
-    throw new UnsupportedError("Cannot set literal");
+  C__TYPE_Int64.local() : this(new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0);
+  
+  /**
+   * Initialises a 64-bit integer literal.
+   */
+  C__TYPE_Int64.literal(int literal) : 
+    super(C__TYPE_DEFINITION.int64_t, new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0) {
+    view.setInt64(0, literal);
   }
 }
 
@@ -191,6 +198,8 @@ class C__TYPE_Pointer extends C__TYPE {
    */
   C__TYPE_Pointer(C__Memory memory, int offset) :
     super(C__TYPE_DEFINITION.pointer_t, memory, offset);
+  
+  C__TYPE_Pointer.local() : this(new C__Memory(C__TYPE_DEFINITION.pointer_t.byteSize), 0);
   
   /**
    * Initialises a pointer pointing to the given object.

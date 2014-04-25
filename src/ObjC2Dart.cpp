@@ -117,14 +117,33 @@ public:
   }
 
   bool TraverseParmVarDecl(ParmVarDecl *d) {
-    return TraverseVarDecl(d);
+    bool savedSupressVarDeclInitialisation = supressVarDeclInitialisation;
+    supressVarDeclInitialisation = true;
+    bool success = TraverseVarDecl(d);
+    supressVarDeclInitialisation = savedSupressVarDeclInitialisation;
+    return success;
   }
 
   bool supressVarDeclType = false;
+  bool supressVarDeclInitialisation = false;
 
   bool TraverseVarDecl(VarDecl *d) {
     if (supressVarDeclType || TraverseType(d->getType())) {
       OS << " " << d->getNameAsString();
+      if (!supressVarDeclInitialisation && !TypeIsDartClass(d->getType())) {
+        if (d->hasInit()) {
+          OS << " = ";
+          if (!TraverseStmt(d->getInit())) {
+            return false;
+          }
+        } else {
+          OS << " = new ";
+          if (!TraverseType(d->getType())) {
+            return false;
+          }
+          OS << ".local()";
+        }
+      }
       return true;
     } else {
       return false;
@@ -216,6 +235,16 @@ public:
       }
       OS << "; }()";
       return true;
+    } else if (o->getOpcode() == BO_Assign) {
+      if (!TraverseStmt(o->getLHS())) {
+        return false;
+      }
+      OS << ".set(";
+      if (!TraverseStmt(o->getRHS())) {
+        return false;
+      }
+      OS << ")";
+      return true;
     } else {
       if (!TraverseStmt(o->getLHS())) {
         return false;
@@ -263,8 +292,9 @@ public:
     return true;
   }
 
+  const std::string dartClassName = "__objc2dart__dart_class";
+
   bool TraverseTypedefType(TypedefType *t) {
-    const std::string dartClassName = "__objc2dart__dart_class";
     QualType source = t->getDecl()->getTypeSourceInfo()->getType();
     // Stop following the typedef chain before dartClassName.
     if (t->getDecl()->getNameAsString() == dartClassName) {
@@ -277,6 +307,23 @@ public:
     return true;
   }
 
+  bool TypeIsDartClass(QualType qt) {
+    const Type *t = qt.getTypePtr();
+    if (t->getTypeClass() == Type::Typedef) {
+      const TypedefType *tt = static_cast<const TypedefType *>(t);
+      QualType source = tt->getDecl()->getTypeSourceInfo()->getType();
+      // Stop following the typedef chain before dartClassName.
+      if (tt->getDecl()->getNameAsString() == dartClassName ||
+          source.getAsString() == dartClassName) {
+        return true;
+      } else {
+        return TypeIsDartClass(source);
+      }
+    } else {
+      return false;
+    }
+  }
+
 #pragma mark Return
 
   bool TraverseReturnStmt(ReturnStmt *s) {
@@ -287,7 +334,7 @@ public:
 #pragma mark Literals
 
   bool VisitIntegerLiteral(IntegerLiteral *il) {
-    OS << "(new C__TYPE_IntegerLiteral(" << il->getValue() << "))";
+    OS << "(new C__TYPE_Int64.literal(" << il->getValue() << "))";
     return true;
   }
 };

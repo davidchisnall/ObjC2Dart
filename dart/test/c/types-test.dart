@@ -6,7 +6,7 @@ void main() {
   group('IntegerLiteral', () {
     test('Allocate and check signs', () {
       var testLiteral = (literal) {
-        C__TYPE_IntegerLiteral a = new C__TYPE_IntegerLiteral(literal);
+        C__TYPE_Int64 a = new C__TYPE_Int64.literal(literal);
         expect(a.view.getInt64(0), equals(literal));
       };
       testLiteral(10);
@@ -20,7 +20,7 @@ void main() {
       var testLiteral = (literal) {
         C__TYPE_Int64 a = C__TYPE_DEFINITION.int64_t.at(
             new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0);
-        a.set(new C__TYPE_IntegerLiteral(literal));
+        a.set(new C__TYPE_Int64.literal(literal));
         expect(a.view.getInt64(0), equals(literal));
       };
       testLiteral(10);
