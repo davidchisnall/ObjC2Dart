@@ -150,6 +150,10 @@ public:
     }
   }
 
+  bool TraverseTypedefDecl(TypedefDecl *d) {
+    return true;
+  }
+
   bool TraverseDeclStmt(DeclStmt *d) {
     bool first = true;
     bool savedSupressVarDeclType = supressVarDeclType;
@@ -194,6 +198,32 @@ public:
     }
     OS.decreaseIndentationLevel().indent() << "}\n";
     OS.indent();
+    return true;
+  }
+
+  bool TraverseIfStmt(IfStmt *s) {
+    OS << "if (";
+    if (!TraverseStmt(s->getCond())) {
+      return false;
+    }
+    OS << ") ";
+    if (!TraverseStmt(s->getThen())) {
+      return false;
+    }
+    OS << " else ";
+    return TraverseStmt(s->getElse());
+  }
+
+  bool TraverseDoStmt(DoStmt *s) {
+    OS << "do ";
+    if (!TraverseStmt(s->getBody())) {
+      return false;
+    }
+    OS << "while (";
+    if (!TraverseStmt(s->getCond())) {
+      return false;
+    }
+    OS << ")";
     return true;
   }
 
@@ -259,6 +289,12 @@ public:
     return TraverseStmt(o->getSubExpr());
   }
 
+  bool TraverseUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *e) {
+    // Everything is 64 bits.
+    OS << "(new C__TYPE_Int64.literal(8))";
+    return true;
+  }
+
 #pragma mark Types
 
   bool TraverseConstantArrayType(ArrayType *t) {
@@ -286,7 +322,7 @@ public:
   bool TraverseBuiltinType(BuiltinType *t) {
     if (t->isVoidType()) {
       OS << "void";
-    } else if (t->isSignedInteger()) {
+    } else if (t->isSignedInteger() || t->isUnsignedInteger()) {
       OS << "C__TYPE_Int64";
     }
     return true;
