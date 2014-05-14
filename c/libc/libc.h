@@ -12,6 +12,11 @@ typedef struct {} __objc2dart__dart_class;
 /**
  * Size type.
  */
-typedef int size_t;
+typedef unsigned int size_t;
+
+/**
+ * NULL
+ */
+#define NULL 0
 
 #endif /* LIBC_H */
