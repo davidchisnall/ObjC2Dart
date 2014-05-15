@@ -6,7 +6,7 @@ project (ObjC2Dart_UnitTests)
 # Set ObjC2Dart as the compiler for .m files, which apparently are C++
 # FIXME: only works with 1 source per target
 set(CMAKE_CXX_COMPILE_OBJECT
-	"$ENV{OBJC2DART_BUILD}/bin/clang -cc1 -load $ENV{OBJC2DART_BUILD}/lib/libobjc2dart.dylib -plugin objc2dart <SOURCE> > <OBJECT>")
+	"$ENV{OBJC2DART_BUILD}/bin/clang -cc1 -load $ENV{OBJC2DART_BUILD}/lib/libobjc2dart.dylib -plugin objc2dart -I/Users/vlad/Work/objc2dart/c/libc/ <SOURCE> > <OBJECT>")
 set(CMAKE_CXX_LINK_EXECUTABLE "mv <OBJECTS> <TARGET>")
 
 # Compile macro

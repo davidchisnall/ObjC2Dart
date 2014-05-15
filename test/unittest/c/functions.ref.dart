@@ -1,4 +1,6 @@
 import 'package:this/c/types.dart';
+import 'package:this/libc/stdarg.dart';
+
 void void_f() {
 }
 C__TYPE_Int64 int_f() {
@@ -19,7 +21,7 @@ C__TYPE_Int64 call() {
   return int_f();
 }
 void main() {
-  C__TYPE_Int64 main() {
+  {
     return (new C__TYPE_Int64.literal(0));
   }
   main();

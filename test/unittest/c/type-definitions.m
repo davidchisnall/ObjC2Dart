@@ -21,6 +21,12 @@ int main() {
   int *pInt;
   void *pVoid;
 
+  // Arrays.
+  int constantArray[6];
+  int variableArray[i];
+  int incompleteArrayLiteral[] = { 1, 2, 3 };
+  int constantArrayLiteral[3] = { 4, 5, 6 };
+
   // Typedefs.
   int_1 i1;
   int_2 i2;

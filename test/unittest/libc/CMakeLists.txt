@@ -1,5 +1,8 @@
+# Packages symlink
+file(COPY Packages DESTINATION .)
+
 # Compile
 objc2dart(stdarg)
 
 # Test
-#add_diff_test(stdarg)
+add_dart_test(stdarg)

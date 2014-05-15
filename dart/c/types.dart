@@ -243,6 +243,15 @@ class C__TYPE_Int64 extends C__TYPE {
     super(C__TYPE_DEFINITION.int64_t, new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0) {
     view.setInt64(0, literal);
   }
+  
+  bool operator<(C__TYPE_Int64 other) {
+    return view.getInt64(0) < other.view.getInt64(0);
+  }
+  
+  dynamic inc() {
+    view.setInt64(0, view.getInt64(0) + 1);
+    return this;
+  }
 }
 
 /**
@@ -313,4 +322,8 @@ class C__TYPE_Pointer extends C__TYPE {
     _pointerOffset = newPointer._pointerOffset;
     return this;
   }
+}
+
+class C__ARRAY {
+  
 }

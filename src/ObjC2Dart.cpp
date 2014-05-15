@@ -74,9 +74,14 @@ public:
   void EmitDefaultImports() {
     // C types.
     OS << "import 'package:this/c/types.dart';\n";
+    // Varargs.
+    OS << "import 'package:this/libc/stdarg.dart';\n";
+    OS << "\n";
   }
 
 #pragma mark Declarations
+
+  FunctionDecl *currentFunctionDecl = NULL;
 
   // TODO: make sure any name ok in C is ok in Dart
   // TODO: varargs
@@ -86,25 +91,44 @@ public:
       // Just a function declaration.
       return true;
     }
+    FunctionDecl *savedCurrentFunctionDecl = currentFunctionDecl;
+    currentFunctionDecl = d;
     // Emit function declaration.
     // The main function in Dart returns void, not int so it needs wrapping.
     if (d->isMain()) {
       OS << "void main() {\n";
       OS.increaseIndentationLevel().indent();
-    }
-    TraverseType(d->getResultType());
-    OS << " " << d->getNameAsString() << "(";
-    // Emit parameter list.
-    for (FunctionDecl::param_iterator it = d->param_begin(),
-         end = d->param_end(); it != end; ++it) {
-      if (!TraverseDecl(*it)) {
-        return false;
+    } else if (d->isVariadic()) {
+      OS << "class C__VARARGS_FUNCTION_" << d->getNameAsString() <<
+          " extends C__VARARGS_FUNCTION {\n";
+      OS.increaseIndentationLevel().indent();
+      OS << "dynamic body(List arguments) {\n";
+      OS.increaseIndentationLevel().indent();
+      int argn = 0;
+      for (FunctionDecl::param_iterator it = d->param_begin(),
+           end = d->param_end(); it != end; ++it) {
+        if (!TraverseDecl(*it)) {
+          return false;
+        }
+        OS << " = arguments[" << argn << "];\n";
+        ++argn;
+        OS.indent();
       }
-      if (it + 1 != end) {
-        OS << ", ";
+    } else {
+      TraverseType(d->getResultType());
+      OS << " " << d->getNameAsString() << "(";
+      // Emit parameter list.
+      for (FunctionDecl::param_iterator it = d->param_begin(),
+           end = d->param_end(); it != end; ++it) {
+        if (!TraverseDecl(*it)) {
+          return false;
+        }
+        if (it + 1 != end) {
+          OS << ", ";
+        }
       }
+      OS << ") ";
     }
-    OS << ") ";
     if (!TraverseStmt(d->getBody())) {
       return false;
     }
@@ -112,7 +136,16 @@ public:
       OS << d->getNameAsString() << "();\n";
       OS.decreaseIndentationLevel().indent() << "}\n";
       OS.indent();
+    } else if (d->isVariadic()) {
+      OS << "}\n";
+      OS.decreaseIndentationLevel().indent();
+      OS << "}\n";
+      OS.decreaseIndentationLevel().indent();
+      OS << "Object " << d->getNameAsString() << " = new C__VARARGS_FUNCTION_" << d->getNameAsString()
+          << "();\n";
+      OS.indent();
     }
+    currentFunctionDecl = savedCurrentFunctionDecl;
     return true;
   }
 
@@ -130,7 +163,7 @@ public:
   bool TraverseVarDecl(VarDecl *d) {
     if (supressVarDeclType || TraverseType(d->getType())) {
       OS << " " << d->getNameAsString();
-      if (!supressVarDeclInitialisation && !TypeIsDartClass(d->getType())) {
+      if (!supressVarDeclInitialisation) {
         if (d->hasInit()) {
           OS << " = ";
           if (!TraverseStmt(d->getInit())) {
@@ -141,7 +174,11 @@ public:
           if (!TraverseType(d->getType())) {
             return false;
           }
-          OS << ".local()";
+          if (TypeIsDartClass(d->getType())) {
+            OS << "()";
+          } else {
+            OS << ".local()";
+          }
         }
       }
       return true;
@@ -180,6 +217,8 @@ public:
       return true;
     } else if (s->getStmtClass() == Stmt::BinaryOperatorClass) {
       return TraverseBinaryOperator(static_cast<BinaryOperator *>(s));
+    } else if (s->getStmtClass() == Stmt::UnaryOperatorClass) {
+      return TraverseUnaryOperator(static_cast<UnaryOperator *>(s));
     } else {
       return RecursiveASTVisitor::TraverseStmt(s);
     }
@@ -227,20 +266,65 @@ public:
     return true;
   }
 
+  bool TraverseForStmt(ForStmt *s) {
+    OS << "for (";
+    if (!TraverseStmt(s->getInit())) {
+      return false;
+    }
+    OS << "; ";
+    if (!TraverseStmt(s->getCond())) {
+      return false;
+    }
+    OS << "; ";
+    if (!TraverseStmt(s->getInc())) {
+      return false;
+    }
+    OS << ") ";
+    return TraverseStmt(s->getBody());
+  }
+
 #pragma mark Expressions
+
+  bool check_va_start_on = false;
+  bool check_va_start_return = false;
+  std::string check_va_start_argname;
 
   bool TraverseCallExpr(CallExpr *e) {
     if (!TraverseStmt(e->getCallee())) {
       return false;
     }
+    check_va_start_on = true;
+    check_va_start_return = false;
+    TraverseStmt(e->getCallee());
+    check_va_start_on = false;
     OS << "(";
-    for (CallExpr::arg_iterator it = e->arg_begin(), end = e->arg_end();
-         it != end; ++it) {
-      if (!TraverseStmt(*it)) {
+    if (!check_va_start_return) {
+      for (CallExpr::arg_iterator it = e->arg_begin(), end = e->arg_end();
+           it != end; ++it) {
+        if (!TraverseStmt(*it)) {
+          return false;
+        }
+        if (it + 1 != end) {
+          OS << ", ";
+        }
+      }
+    } else {
+      if (!TraverseStmt(*(e->arg_begin()))) {
         return false;
       }
-      if (it + 1 != end) {
-        OS << ", ";
+      OS << ", ";
+      check_va_start_on = true;
+      TraverseStmt(*(e->arg_begin() + 1));
+      check_va_start_on = false;
+      int argn = 0;
+      for (FunctionDecl::param_iterator it = currentFunctionDecl->param_begin(),
+           end = currentFunctionDecl->param_end(); it != end; ++it) {
+        VarDecl *d = static_cast<VarDecl *>(*it);
+        if ((d->getNameAsString()).compare(check_va_start_argname) == 0) {
+          OS << argn + 1 << ", arguments";
+          break;
+        }
+        ++argn;
       }
     }
     OS << ")";
@@ -248,7 +332,14 @@ public:
   }
 
   bool TraverseDeclRefExpr(DeclRefExpr *e) {
-    OS << e->getDecl()->getNameAsString();
+    if (check_va_start_on) {
+      check_va_start_argname = e->getDecl()->getNameAsString();
+      if (check_va_start_argname.compare("va_start") == 0) {
+        check_va_start_return = true;
+      }
+    } else {
+      OS << e->getDecl()->getNameAsString();
+    }
     return true;
   }
 
@@ -285,8 +376,22 @@ public:
   }
 
   bool TraverseUnaryOperator(UnaryOperator *o) {
-    OS << o->getOpcodeStr(o->getOpcode()) << " ";
-    return TraverseStmt(o->getSubExpr());
+    if (o->getOpcodeStr(o->getOpcode()).compare("*") == 0) {
+      if (!TraverseStmt(o->getSubExpr())) {
+        return false;
+      }
+      OS << ".pointee";
+      return true;
+    } else if (o->getOpcodeStr(o->getOpcode()).compare("++") == 0) {
+      if (!TraverseStmt(o->getSubExpr())) {
+        return false;
+      }
+      OS << ".inc()";
+      return true;
+    } else {
+      OS << o->getOpcodeStr(o->getOpcode()) << " ";
+      return TraverseStmt(o->getSubExpr());
+    }
   }
 
   bool TraverseUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *e) {

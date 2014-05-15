@@ -24,6 +24,14 @@ class va_list {
   
   Object next() {
     ++_position;
-    return _arguments[_position - 1];
+    return _arguments[_position - 1].pointer();
   }
+}
+
+void va_start(va_list ap, int argn, List args) {
+  ap.initialize(args, argn);
+}
+
+dynamic va_arg(va_list ap) {
+  return ap.next();
 }
