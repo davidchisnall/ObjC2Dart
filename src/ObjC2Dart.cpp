@@ -177,7 +177,11 @@ public:
           if (TypeIsDartClass(d->getType())) {
             OS << "()";
           } else {
-            OS << ".local()";
+            if (((d->getType()).getTypePtr())->isPointerType()) {
+              OS << ".local(C__TYPE_DEFINITION.int64_t)";
+            } else {
+              OS << ".local()";
+            }
           }
         }
       }
@@ -381,6 +385,12 @@ public:
         return false;
       }
       OS << ".pointee";
+      return true;
+    } else if (o->getOpcodeStr(o->getOpcode()).compare("&") == 0) {
+      if (!TraverseStmt(o->getSubExpr())) {
+        return false;
+      }
+      OS << ".pointer()";
       return true;
     } else if (o->getOpcodeStr(o->getOpcode()).compare("++") == 0) {
       if (!TraverseStmt(o->getSubExpr())) {

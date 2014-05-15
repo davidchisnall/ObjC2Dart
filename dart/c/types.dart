@@ -173,7 +173,7 @@ abstract class C__TYPE {
    * Sets the given value in the memory of the variable.
    */
   C__TYPE set(C__TYPE newValue) {
-    if (definition != newValue.definition) {
+    if (!(definition == newValue.definition)) {
       throw new UnsupportedError("Types must explicitly be casted before assigning");
     }
     C__memcpy(pointer(), newValue.pointer(), definition.byteSize);
@@ -323,8 +323,8 @@ class C__TYPE_Pointer extends C__TYPE {
     this.toObject(new C__TYPE_Void(memory, offset));
   
   C__TYPE set(C__TYPE newValue) {
-    if (definition != newValue.definition) {
-      throw new UnsupportedError("Types must explicitly be casted before assigning");
+    if (!(definition == newValue.definition)) {
+      throw new UnsupportedError("Types must explicitly be casted before ");
     }
     view.setInt64(0, newValue.view.getInt64(0));
     C__TYPE_Pointer newPointer = newValue;
