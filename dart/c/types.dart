@@ -279,6 +279,16 @@ class C__TYPE_Pointer extends C__TYPE {
   int _pointerOffset;
   
   /**
+   * The memory chunk this pointer points to.
+   */
+  C__Memory get memoryPointedTo {
+    if (_pointing == null) {
+      pointee;
+    }
+    return _pointing;
+  }
+  
+  /**
    * Initialises a new pointer not pointing anywhere in particular.
    */
   C__TYPE_Pointer(C__Memory memory, int offset, C__TYPE_DEFINITION pointeeType) :
