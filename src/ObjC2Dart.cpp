@@ -74,6 +74,8 @@ public:
   void EmitDefaultImports() {
     // C types.
     OS << "import 'package:this/c/types.dart';\n";
+    // Stdlib.
+    OS << "import 'package:this/libc/stdlib.dart';\n";
     // Varargs.
     OS << "import 'package:this/libc/stdarg.dart';\n";
     OS << "\n";
@@ -370,6 +372,26 @@ public:
       }
       OS << ")";
       return true;
+    } else if (o->getOpcode() == BO_Shl) {
+      if (!TraverseStmt(o->getLHS())) {
+        return false;
+      }
+      OS << ".shl(";
+      if (!TraverseStmt(o->getRHS())) {
+        return false;
+      }
+      OS << ")";
+      return true;
+    } else if (o->getOpcode() == BO_Shr) {
+      if (!TraverseStmt(o->getLHS())) {
+        return false;
+      }
+      OS << ".shr(";
+      if (!TraverseStmt(o->getRHS())) {
+        return false;
+      }
+      OS << ")";
+      return true;
     } else {
       if (!TraverseStmt(o->getLHS())) {
         return false;
@@ -407,6 +429,14 @@ public:
   bool TraverseUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *e) {
     // Everything is 64 bits.
     OS << "(new C__TYPE_Int64.literal(8))";
+    return true;
+  }
+
+  bool TraverseArraySubscriptExpr(ArraySubscriptExpr *e) {
+    TraverseStmt(e->getLHS());
+    OS << ".index(";
+    TraverseStmt(e->getRHS());
+    OS << ")";
     return true;
   }
 

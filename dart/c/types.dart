@@ -248,9 +248,53 @@ class C__TYPE_Int64 extends C__TYPE {
     return view.getInt64(0) < other.view.getInt64(0);
   }
   
+  bool operator<=(C__TYPE_Int64 other) {
+    return view.getInt64(0) <= other.view.getInt64(0);
+  }
+  
+  bool operator>(C__TYPE_Int64 other) {
+    return view.getInt64(0) > other.view.getInt64(0);
+  }
+  
+  dynamic operator+(C__TYPE_Int64 other) {
+    int v = view.getInt64(0);
+    v += other.view.getInt64(0);
+    return new C__TYPE_Int64.literal(v);
+  }
+  
+  dynamic operator-(C__TYPE_Int64 other) {
+    int v = view.getInt64(0);
+    v -= other.view.getInt64(0);
+    return new C__TYPE_Int64.literal(v);
+  }
+  
+  dynamic operator*(C__TYPE_Int64 other) {
+    int v = view.getInt64(0);
+    v *= other.view.getInt64(0);
+    return new C__TYPE_Int64.literal(v);
+  }
+  
+  dynamic operator/(C__TYPE_Int64 other) {
+    int v = view.getInt64(0);
+    v ~/= other.view.getInt64(0);
+    return new C__TYPE_Int64.literal(v);
+  }
+  
   dynamic inc() {
     view.setInt64(0, view.getInt64(0) + 1);
     return this;
+  }
+  
+  dynamic shl(C__TYPE_Int64 other) {
+    int v = view.getInt64(0);
+    v <<= other.view.getInt64(0);
+    return new C__TYPE_Int64.literal(v);
+  }
+  
+  dynamic shr(C__TYPE_Int64 other) {
+    int v = view.getInt64(0);
+    v >>= other.view.getInt64(0);
+    return new C__TYPE_Int64.literal(v);
   }
 }
 
@@ -320,7 +364,7 @@ class C__TYPE_Pointer extends C__TYPE {
    * Initialises a pointer pointing to an area of memory.
    */
   C__TYPE_Pointer.toMemory(C__Memory memory, int offset) :
-    this.toObject(new C__TYPE_Void(memory, offset));
+    this.toObject(new C__TYPE_Int64(memory, offset));
   
   C__TYPE set(C__TYPE newValue) {
     if (!(definition == newValue.definition)) {
@@ -332,8 +376,15 @@ class C__TYPE_Pointer extends C__TYPE {
     _pointerOffset = newPointer._pointerOffset;
     return this;
   }
-}
-
-class C__ARRAY {
   
+  C__TYPE index(C__TYPE_Int64 index) {
+    if (_pointing == null) {
+      pointee;
+    }
+    int indexV = index.view.getInt64(0);
+    _pointerOffset += indexV * definition.target_t.byteSize;
+    var ret = pointee;
+    _pointerOffset -= indexV * definition.target_t.byteSize;
+    return ret;
+  }
 }
