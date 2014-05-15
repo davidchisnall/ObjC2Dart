@@ -29,4 +29,32 @@ void main() {
       testLiteral(-343597383680);
     });
   });
+  group('Pointers', () {
+    test('int * - creation, deref, set', () {      
+      // Define 2 integers, |a| and |b|.
+      C__TYPE_Int64 a = new C__TYPE_Int64.literal(3);
+      expect(a.view.getInt64(/* at offset */ 0), equals(3));
+      C__TYPE_Int64 b = new C__TYPE_Int64.literal(5);
+      expect(b.view.getInt64(0), equals(5));
+      
+      // Define a pointer to |a|.
+      C__TYPE_Pointer p = a.pointer();
+      expect(p.view.getInt64(0), equals(a.address));
+      expect(p.pointee, equals(a));
+      
+      // Check that dereferencing and setting affects |a|, but not |b|.
+      p.pointee.set(new C__TYPE_Int64.literal(7));
+      expect(a.view.getInt64(0), equals(7));
+      expect(b.view.getInt64(0), equals(5));
+      
+      // Make |p| point to |b|.
+      p.set(b.pointer());
+      expect(p.view.getInt64(0), equals(b.address));
+      expect(p.pointee, equals(b));
+      
+      // Check that the pointer assignment did not affect |a| and |b|.
+      expect(a.view.getInt64(0), equals(7));
+      expect(b.view.getInt64(0), equals(5));
+    });
+  });
 }
