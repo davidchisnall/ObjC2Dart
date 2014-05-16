@@ -218,6 +218,33 @@ public:
     return true;
   }
 
+  bool TraverseObjCImplementationDecl(ObjCImplementationDecl *d) {
+    OS << "class " << d->getNameAsString() << " extends NSObject {\n";
+    OS.increaseIndentationLevel().indent();
+    for (ObjCContainerDecl::method_iterator it = d->meth_begin(),
+         end = d->meth_end(); it != end; ++it) {
+      TraverseDecl(*it);
+    }
+    OS << "}\n";
+    OS.decreaseIndentationLevel().indent();
+    return true;
+  }
+
+  bool TraverseObjCMethodDecl(ObjCMethodDecl *d) {
+    TraverseType(d->getResultType());
+    OS << " " << d->getNameAsString() << "(";
+    for (ObjCMethodDecl::param_iterator it = d->param_begin(),
+         end = d->param_end(); it != end; ++it) {
+      if (it != d->param_begin()) {
+        OS << ", ";
+      }
+      TraverseDecl(*it);
+    }
+    OS << ") ";
+    TraverseStmt(d->getBody());
+    return true;
+  }
+
 #pragma mark Statements
 
   bool TraverseStmt(Stmt *s) {
@@ -488,7 +515,7 @@ public:
   }
 
   bool TraverseObjCObjectPointerType(ObjCObjectPointerType *t) {
-    OS << t->getInterfaceDecl()->getNameAsString();
+    OS << t->getInterfaceDecl()->getNameAsString() << " ";
     return true;
   }
 
