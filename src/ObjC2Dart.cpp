@@ -78,6 +78,8 @@ public:
     OS << "import 'package:this/libc/stdlib.dart';\n";
     // Varargs.
     OS << "import 'package:this/libc/stdarg.dart';\n";
+    // NSObject.
+    OS << "import 'package:this/objc/NSObject.dart';\n";
     OS << "\n";
   }
 
@@ -440,6 +442,18 @@ public:
     return true;
   }
 
+  bool TraverseObjCMessageExpr(ObjCMessageExpr *e) {
+//    OS << "(";
+    if (e->isInstanceMessage()) {
+      OS << e->getReceiverInterface()->getNameAsString();
+      TraverseStmt(e->getInstanceReceiver());
+    } else {
+      TraverseType(e->getClassReceiver());
+    }
+    OS << "." << (e->getSelector()).getAsString() << "()";
+    return true;
+  }
+
 #pragma mark Types
 
   bool TraverseConstantArrayType(ArrayType *t) {
@@ -470,6 +484,11 @@ public:
     } else if (t->isSignedInteger() || t->isUnsignedInteger()) {
       OS << "C__TYPE_Int64";
     }
+    return true;
+  }
+
+  bool TraverseObjCObjectPointerType(ObjCObjectPointerType *t) {
+    OS << t->getInterfaceDecl()->getNameAsString();
     return true;
   }
 

@@ -16,12 +16,12 @@ sed -e s/_N_/$i/g run_c.m > run_c.n.m
 sed -e s/_N_/$i/g run_dart.dart > run_dart.n.dart
 
 # Compile C
-clang -O0 test.m run_c.n.m -o run_c
+clang -framework Foundation -O0 test.m run_c.n.m -o run_c
 
 C_TIME="$(./run_c 2>&1)"
 DART_TIME="$(dart run_dart.n.dart 2>&1)"
 
-echo $C_TIME $DART_TIME > data.txt
+echo $C_TIME $DART_TIME >> data.txt
 
 rm run_c.n.m run_dart.n.dart
 
