@@ -119,7 +119,7 @@ public:
         OS.indent();
       }
     } else {
-      TraverseType(d->getResultType());
+      TraverseType(d->getReturnType());
       OS << " " << d->getNameAsString() << "(";
       // Emit parameter list.
       for (FunctionDecl::param_iterator it = d->param_begin(),
@@ -231,7 +231,7 @@ public:
   }
 
   bool TraverseObjCMethodDecl(ObjCMethodDecl *d) {
-    TraverseType(d->getResultType());
+    TraverseType(d->getReturnType());
     OS << " " << d->getNameAsString() << "(";
     for (ObjCMethodDecl::param_iterator it = d->param_begin(),
          end = d->param_end(); it != end; ++it) {
