@@ -378,55 +378,66 @@ public:
     return true;
   }
 
-  bool TraverseBinaryOperator(BinaryOperator *o) {
-    if (o->getOpcode() == BO_Comma) {
-      // There can be no definitions in it, so wrap it in a closure.
-      OS << "(){ ";
-      if (!TraverseStmt(o->getLHS())) {
-        return false;
-      }
-      OS << "; return ";
-      if (!TraverseStmt(o->getRHS())) {
-        return false;
-      }
+
+  bool emitSimpleBinOp(Expr *LHS, Expr *RHS, const char *OpStr, bool Assign) {
+    bool ret;
+    if (Assign) {
+      OS << "() { var __tmp = ";
+      ret = TraverseStmt(LHS);
+      OS << "; __tmp";
+    } else
+      ret = TraverseStmt(LHS);
+    OS << OpStr << '(';
+    ret &= TraverseStmt(RHS);
+    OS << ')';
+    if (Assign)
       OS << "; }()";
-      return true;
-    } else if (o->getOpcode() == BO_Assign) {
-      if (!TraverseStmt(o->getLHS())) {
-        return false;
+    return ret;
+  }
+
+  bool TraverseCompoundAssignOperator(CompoundAssignOperator *O) {
+    return TraverseBinaryOperator(O);
+  }
+
+  bool TraverseBinaryOperator(BinaryOperator *O) {
+    Expr *LHS = O->getLHS(), *RHS = O->getRHS();
+    BinaryOperator::Opcode Opc = O->getOpcode();
+    bool IsAssign = false;
+    switch (Opc) {
+      case BO_Comma: {
+        // There can be no definitions in it, so wrap it in a closure.
+        OS << "(){ ";
+        if (!TraverseStmt(LHS))
+          return false;
+        OS << "; return ";
+        if (!TraverseStmt(RHS))
+          return false;
+        OS << "; }()";
+        return true;
       }
-      OS << ".set(";
-      if (!TraverseStmt(o->getRHS())) {
+      case BO_Assign:
+        return emitSimpleBinOp(LHS, RHS, ".set", IsAssign);
+      case BO_ShlAssign:
+        IsAssign = true;
+      case BO_Shl:
+        return emitSimpleBinOp(LHS, RHS, ".shl", IsAssign);
+      case BO_ShrAssign:
+        IsAssign = true;
+      case BO_Shr:
+        return emitSimpleBinOp(LHS, RHS, ".shr", IsAssign);
+      case BO_MulAssign: case BO_DivAssign: case BO_RemAssign:
+      case BO_AddAssign: case BO_SubAssign: case BO_AndAssign:
+      case BO_XorAssign: case BO_OrAssign:
+        IsAssign = true;
+      // These operators are the same in dart and C:
+      case BO_And: case BO_Xor: case BO_Or: case BO_LAnd: case BO_LOr:
+      case BO_Mul: case BO_Div: case BO_Rem: case BO_Add: case BO_Sub:
+      case BO_LT: case BO_GT: case BO_LE: case BO_GE: case BO_EQ: case BO_NE:
+        return emitSimpleBinOp(LHS, RHS,
+          BinaryOperator::getOpcodeStr(Opc).str().c_str(), IsAssign);
+      // C++ operators, not supported
+      case BO_PtrMemD: case BO_PtrMemI:
         return false;
-      }
-      OS << ")";
-      return true;
-    } else if (o->getOpcode() == BO_Shl) {
-      if (!TraverseStmt(o->getLHS())) {
-        return false;
-      }
-      OS << ".shl(";
-      if (!TraverseStmt(o->getRHS())) {
-        return false;
-      }
-      OS << ")";
-      return true;
-    } else if (o->getOpcode() == BO_Shr) {
-      if (!TraverseStmt(o->getLHS())) {
-        return false;
-      }
-      OS << ".shr(";
-      if (!TraverseStmt(o->getRHS())) {
-        return false;
-      }
-      OS << ")";
-      return true;
-    } else {
-      if (!TraverseStmt(o->getLHS())) {
-        return false;
-      }
-      OS << " " << o->getOpcodeStr(o->getOpcode()) << " ";
-      return TraverseStmt(o->getRHS());
     }
   }
 
