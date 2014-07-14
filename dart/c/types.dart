@@ -9,7 +9,7 @@ Map<int, C__Memory> C__Memory_Map = new Map();
 
 /**
  * Represents a piece of memory.
- * 
+ *
  * Addresses are made up of, from most to least significant:
  *  - 32 bits object ID
  *  - 29 bits offset
@@ -18,7 +18,7 @@ Map<int, C__Memory> C__Memory_Map = new Map();
 class C__Memory {
   // Counter used for memory object ID.
   static int _objectID = 0;
-  
+
   /**
    * The base address of the memory. 
    */
@@ -30,7 +30,7 @@ class C__Memory {
    */
   ByteBuffer _data;
   ByteBuffer get data => _data;
-  
+
   C__Memory(int bytes) {
     // Set the object ID in the address.
     _baseAddress = _objectID << 32;
@@ -48,25 +48,30 @@ class C__Memory {
 class C__TYPE_DEFINITION {
   // Void.
   final bool isVoid;
-  
+
   // Pointer.
   final int pointerLevel;
-  
+
   // Number.
   final bool isNumber;
   final bool isSigned;
-  
+
   // Size.
-  int get byteSize => pointerLevel > 0 ? C__TYPE_DEFINITION.pointer_width : _byteSize;
+  int get byteSize => pointerLevel > 0 ? C__TYPE_DEFINITION.pointer_width :
+      _byteSize;
   final int _byteSize;
-  
+
   /**
    * Private constructor. Please use static methods instead.
    */
-  C__TYPE_DEFINITION(int pointerLevel, {bool isVoid, bool isNumber, bool isSigned, int byteSize}) :
-    isVoid = isVoid, pointerLevel = pointerLevel, isNumber = isNumber, isSigned = isSigned,
-    _byteSize = byteSize;
-  
+  C__TYPE_DEFINITION(int pointerLevel, {bool isVoid, bool isNumber, bool
+      isSigned, int byteSize})
+      : isVoid = isVoid,
+        pointerLevel = pointerLevel,
+        isNumber = isNumber,
+        isSigned = isSigned,
+        _byteSize = byteSize;
+
   /**
    * Return a new instance of the type at the given memory location.
    */
@@ -77,55 +82,56 @@ class C__TYPE_DEFINITION {
       return new C__TYPE_Int64(memory, offset);
     }
   }
-  
+
   // Type definitions.
-  
+
   /**
    * Returns a type definition for void.
    */
   static C__TYPE_DEFINITION get void_t => _void;
-  static C__TYPE_DEFINITION _void = new C__TYPE_DEFINITION(0, isVoid: true, byteSize: 0);
-  
+  static C__TYPE_DEFINITION _void = new C__TYPE_DEFINITION(0, isVoid: true,
+      byteSize: 0);
+
   /**
    * Return a type defintion for a signed 64-bit integer.
    */
   static C__TYPE_DEFINITION get int64_t => _int64;
-  static C__TYPE_DEFINITION _int64 =
-      new C__TYPE_DEFINITION(0, isNumber: true, isSigned: true, byteSize: 8);
-  
+  static C__TYPE_DEFINITION _int64 = new C__TYPE_DEFINITION(0, isNumber: true,
+      isSigned: true, byteSize: 8);
+
   /**
    * Returns the width of a pointer.
    */
   static int get pointer_width => 8;
-  
+
   /**
    * Returns a type definition for a pointer to this type definition.
    */
-  C__TYPE_DEFINITION get pointer_t =>
-      new C__TYPE_DEFINITION(pointerLevel + 1,
-          isVoid: isVoid, isNumber: isNumber, isSigned: isSigned, byteSize: _byteSize);
-  
+  C__TYPE_DEFINITION get pointer_t => new C__TYPE_DEFINITION(pointerLevel + 1,
+      isVoid: isVoid, isNumber: isNumber, isSigned: isSigned, byteSize: _byteSize);
+
   /**
    * Returns a type definition for the type this pointer points to, or null if this type is not a
    * pointer.
    */
   C__TYPE_DEFINITION get target_t {
     if (pointerLevel > 0) {
-      return new C__TYPE_DEFINITION(pointerLevel - 1,
-          isVoid: isVoid, isNumber: isNumber, isSigned: isSigned, byteSize: _byteSize);
+      return new C__TYPE_DEFINITION(pointerLevel - 1, isVoid: isVoid, isNumber:
+          isNumber, isSigned: isSigned, byteSize: _byteSize);
     } else {
       return null;
     }
   }
-  
-  bool operator==(var other) {
-    return super == other || (other is C__TYPE_DEFINITION && isVoid == other.isVoid &&
-        pointerLevel == other.pointerLevel && isNumber == other.isNumber &&
-        isSigned == other.isSigned && byteSize == other.byteSize);
+
+  bool operator ==(var other) {
+    return super == other || (other is C__TYPE_DEFINITION && isVoid ==
+        other.isVoid && pointerLevel == other.pointerLevel && isNumber == other.isNumber
+        && isSigned == other.isSigned && byteSize == other.byteSize);
   }
-  
+
   int get hashCode {
-    return (isVoid ? 0 : 1) ^ (isNumber ? 2 : 4) ^ (isSigned ? 8 : 16) ^ byteSize ^ pointerLevel;
+    return (isVoid ? 0 : 1) ^ (isNumber ? 2 : 4) ^ (isSigned ? 8 : 16) ^
+        byteSize ^ pointerLevel;
   }
 }
 
@@ -138,62 +144,66 @@ abstract class C__TYPE {
    */
   C__TYPE_DEFINITION get definition => _definition;
   C__TYPE_DEFINITION _definition;
-  
+
   /**
    * The memory storing the data.
    */
   C__Memory get memory => _memory;
   C__Memory _memory;
-  
+
   /**
    * The offset in the memory, in bytes.
    */
   int get offset => _offset;
   int _offset;
-  
+
   /**
    * The address.
    */
   int get address => memory.baseAddress + offset;
-  
+
   /**
    * A view on the memory at the offset.
    */
   ByteData get view => _view;
   ByteData _view;
-  
+
   /**
    * Initialise the type with the given definition, memory and offset in bytes.
    */
-  C__TYPE(C__TYPE_DEFINITION definition, C__Memory memory, int offset) :
-    _definition = definition, _memory = memory, _offset = offset, 
-    _view = new ByteData.view(memory.data, offset);
-  
+  C__TYPE(C__TYPE_DEFINITION definition, C__Memory memory, int offset)
+      : _definition = definition,
+        _memory = memory,
+        _offset = offset,
+        _view = new ByteData.view(memory.data, offset);
+
   /**
    * Sets the given value in the memory of the variable.
    */
   C__TYPE set(C__TYPE newValue) {
     if (!(definition == newValue.definition)) {
-      throw new UnsupportedError("Types must explicitly be casted before assigning");
+      throw new UnsupportedError(
+          "Types must explicitly be casted before assigning");
     }
     C__memcpy(pointer(), newValue.pointer(), definition.byteSize);
     return this;
   }
-  
+
   /**
    * Returns a C pointer to this instance.
    */
   C__TYPE_Pointer pointer() {
     return new C__TYPE_Pointer.toObject(this);
   }
-  
+
   /**
    * Checks equality.
    */
-  bool operator==(var other) {
-    return super == other || (other is C__TYPE && other.view.getInt64(0) == this.view.getInt64(0));
+  bool operator ==(var other) {
+    return super == other || (other is C__TYPE && other.view.getInt64(0) ==
+        this.view.getInt64(0));
   }
-  
+
   /**
    * Hash code.
    */
@@ -207,7 +217,8 @@ abstract class C__TYPE {
  * Note: Only used internally, for pointers.
  */
 class C__TYPE_Void extends C__TYPE {
-  C__TYPE_Void(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.void_t, memory, offset);
+  C__TYPE_Void(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.void_t,
+      memory, offset);
 
   /**
    * Return a new instance of the type backed by the same data as the given variable.
@@ -217,14 +228,17 @@ class C__TYPE_Void extends C__TYPE {
   /**
    * Allocate a new instance on the stack.
    */
-  C__TYPE_Void.local() : this(new C__Memory(C__TYPE_DEFINITION.void_t.byteSize), 0);
+  C__TYPE_Void.local() : this(new C__Memory(C__TYPE_DEFINITION.void_t.byteSize),
+      0);
 }
 
 /**
  * Represents a 64-bit integer.
  */
 class C__TYPE_Int64 extends C__TYPE {
-  C__TYPE_Int64(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.int64_t, memory, offset);
+  C__TYPE_Int64(C__Memory memory, int offset) : super(
+      C__TYPE_DEFINITION.int64_t, memory, offset);
+
 
   /**
    * Return a new instance of the type backed by the same data as the given variable.
@@ -234,8 +248,9 @@ class C__TYPE_Int64 extends C__TYPE {
   /**
    * Allocate a new instance on the stack.
    */
-  C__TYPE_Int64.local() : this(new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0);
-  
+  C__TYPE_Int64.local() : this(new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize
+      ), 0);
+
   /**
    * Initialises a 64-bit integer literal.
    */
@@ -243,54 +258,54 @@ class C__TYPE_Int64 extends C__TYPE {
     super(C__TYPE_DEFINITION.int64_t, new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0) {
     view.setInt64(0, literal);
   }
-  
-  bool operator<(C__TYPE_Int64 other) {
+
+  bool operator <(C__TYPE_Int64 other) {
     return view.getInt64(0) < other.view.getInt64(0);
   }
-  
-  bool operator<=(C__TYPE_Int64 other) {
+
+  bool operator <=(C__TYPE_Int64 other) {
     return view.getInt64(0) <= other.view.getInt64(0);
   }
-  
-  bool operator>(C__TYPE_Int64 other) {
+
+  bool operator >(C__TYPE_Int64 other) {
     return view.getInt64(0) > other.view.getInt64(0);
   }
-  
-  dynamic operator+(C__TYPE_Int64 other) {
+
+  dynamic operator +(C__TYPE_Int64 other) {
     int v = view.getInt64(0);
     v += other.view.getInt64(0);
     return new C__TYPE_Int64.literal(v);
   }
-  
-  dynamic operator-(C__TYPE_Int64 other) {
+
+  dynamic operator -(C__TYPE_Int64 other) {
     int v = view.getInt64(0);
     v -= other.view.getInt64(0);
     return new C__TYPE_Int64.literal(v);
   }
-  
-  dynamic operator*(C__TYPE_Int64 other) {
+
+  dynamic operator *(C__TYPE_Int64 other) {
     int v = view.getInt64(0);
     v *= other.view.getInt64(0);
     return new C__TYPE_Int64.literal(v);
   }
-  
-  dynamic operator/(C__TYPE_Int64 other) {
+
+  dynamic operator /(C__TYPE_Int64 other) {
     int v = view.getInt64(0);
     v ~/= other.view.getInt64(0);
     return new C__TYPE_Int64.literal(v);
   }
-  
+
   dynamic inc() {
     view.setInt64(0, view.getInt64(0) + 1);
     return this;
   }
-  
+
   dynamic shl(C__TYPE_Int64 other) {
     int v = view.getInt64(0);
     v <<= other.view.getInt64(0);
     return new C__TYPE_Int64.literal(v);
   }
-  
+
   dynamic shr(C__TYPE_Int64 other) {
     int v = view.getInt64(0);
     v >>= other.view.getInt64(0);
@@ -321,7 +336,7 @@ class C__TYPE_Pointer extends C__TYPE {
   }
   C__Memory _pointing;
   int _pointerOffset;
-  
+
   /**
    * The memory chunk this pointer points to.
    */
@@ -331,35 +346,36 @@ class C__TYPE_Pointer extends C__TYPE {
     }
     return _pointing;
   }
-  
+
   /**
    * Initialises a new pointer not pointing anywhere in particular.
    */
-  C__TYPE_Pointer(C__Memory memory, int offset, C__TYPE_DEFINITION pointeeType) :
-    super(pointeeType.pointer_t, memory, offset), _pointerOffset = 0 {
-  }
-
+  C__TYPE_Pointer(C__Memory memory, int offset, C__TYPE_DEFINITION pointeeType)
+      : super(pointeeType.pointer_t, memory, offset),
+        _pointerOffset = 0;
   /**
    * Return a new instance of the type backed by the same data as the given variable.
    */
-  C__TYPE_Pointer.from(C__TYPE variable, C__TYPE_DEFINITION pointeeType) :
-    this(variable.memory, variable.offset, pointeeType);
+  C__TYPE_Pointer.from(C__TYPE variable, C__TYPE_DEFINITION pointeeType) : this(
+      variable.memory, variable.offset, pointeeType);
 
   /**
    * Allocate a new instance on the stack.
    */
-  C__TYPE_Pointer.local(C__TYPE_DEFINITION pointeeType) :
-    this(new C__Memory(C__TYPE_DEFINITION.pointer_width), 0, pointeeType);
-  
+  C__TYPE_Pointer.local(C__TYPE_DEFINITION pointeeType) : this(new C__Memory(
+      C__TYPE_DEFINITION.pointer_width), 0, pointeeType);
+
   /**
    * Initialises a pointer pointing to the given object.
    */
-  C__TYPE_Pointer.toObject(C__TYPE pointee) :
-    super(pointee.definition.pointer_t, new C__Memory(C__TYPE_DEFINITION.pointer_width), 0), 
-    _pointing = pointee.memory, _pointerOffset = pointee.offset {
+  C__TYPE_Pointer.toObject(C__TYPE pointee)
+      : super(pointee.definition.pointer_t, new C__Memory(
+          C__TYPE_DEFINITION.pointer_width), 0),
+        _pointing = pointee.memory,
+        _pointerOffset = pointee.offset {
     view.setInt64(0, pointee.address);
   }
-  
+
   /**
    * Initialises a pointer pointing to an area of memory.
    */
@@ -376,7 +392,18 @@ class C__TYPE_Pointer extends C__TYPE {
     _pointerOffset = newPointer._pointerOffset;
     return this;
   }
-  
+  /**
+   * Construct a new pointer that is at a given offset from another.
+   */
+  //C__TYPE_Pointer.atOffset(C__TYPE_Pointer other, int offset) :
+
+
+
+  C__TYPE_Pointer operator +(C__TYPE other) {
+    // C__TYPE_Pointer newPtr = new C__TYPE_Pointer.atOffset(this, other.
+  }
+
+
   C__TYPE index(C__TYPE_Int64 index) {
     if (_pointing == null) {
       pointee;
