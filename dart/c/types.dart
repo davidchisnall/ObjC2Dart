@@ -336,8 +336,8 @@ abstract class DartCInteger extends DartCObject {
   DartCObject signedIntValue() => new DartCUnsignedInt.fromInt(intValue());
   DartCObject unsignedLongValue() => new DartCUnsignedLong.fromInt(intValue());
   DartCObject signedLongValue() => new DartCUnsignedLong.fromInt(intValue());
-  DartCObject floatValue() => new DartCFloat.fromInt(intValue());
-  DartCObject doubleValue() => new DartCDouble.fromInt(intValue());
+  DartCObject floatValue() => new DartCFloat.fromNum(intValue());
+  DartCObject doubleValue() => new DartCDouble.fromNum(intValue());
 
 }
 abstract class DartCFloating extends DartCObject {
