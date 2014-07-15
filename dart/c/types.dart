@@ -1,346 +1,572 @@
 import 'dart:typed_data';
 
-import '../libc/string.dart';
+//import '../libc/string.dart';
 
 /**
- * Stores the base address -> C__Memory instance mapping. 
+ * Stores the object id -> C__Memory instance mapping.
  */
-Map<int, C__Memory> C__Memory_Map = new Map();
+Map<int, DartCMemory> dartCMemoryMap = new Map();
 
 /**
- * Represents a piece of memory.
+ * Represents a single allocation.
  *
  * Addresses are made up of, from most to least significant:
  *  - 32 bits object ID
  *  - 29 bits offset
  *  - 3 bits alignment
  */
-class C__Memory {
+class DartCMemory {
   // Counter used for memory object ID.
   static int _objectID = 0;
 
   /**
-   * The base address of the memory. 
+   * The base address of the memory.  This is 0 for any object whose
+   * address is not taken and lazily allocated the first time its address
+   * is taken.
    */
-  int _baseAddress;
-  int get baseAddress => _baseAddress;
-  
+  int _baseAddress = 0;
+  int get baseAddress {
+    if (_baseAddress == 0) {
+      // Set the object ID in the address.
+      _baseAddress = _objectID++;
+      // For now, we don't support allocating more than 2^32 objects over the
+      // lifetime of a program.
+      assert(_baseAddress < 0xffffffff);
+    }
+    return _baseAddress;
+  }
+
+  Map<int, C__TYPE_Pointer> pointers;
+
+  /**
+   * Get a pointer value.  If no pointer was stored here, then try to calculate
+   * one from the data.
+   */
+  C__TYPE_Pointer getPointer(int offset) {
+    C__TYPE_Pointer ptr = pointers[offset];
+    if (ptr != null) {
+      return ptr;
+    }
+    // TODO: Pluggable policies for pointers that we're trying to reconstruct
+    // from integers
+    return new C__TYPE_Pointer(getUInt64(offset));
+  }
+
+  /**
+   * Fill in all pointer values that overlap the data that we're reading.
+   * This ensures that we're computing numerical values for every pointer that
+   * is stored.  It is done lazily because we don't want to assign unique
+   * identifiers to short-lived objects.
+   */
+  void checkPointers(int offset, int size) {
+    // Fast path to skip this if this has no pointers
+    if (pointers.isEmpty) return;
+    int start = (offset - 8).clamp(0, _bytes);
+    int end = offset + size.clamp(0, _bytes - 8);
+    for (int i = start; i <= end; i++) {
+      C__TYPE_Pointer ptr = pointers[i];
+      if (ptr != null) {
+        data.setUint64(i, ptr.getNumericValue());
+      }
+    }
+  }
+
+  /**
+   * Invalidate any pointers that overlap with some data that we're about to
+   * write.  We'll try to recompute them from integers if possible...
+   */
+  void invalidatePointers(int offset, int size) {
+    // Fast path to skip this if this has no pointers
+    if (pointers.isEmpty) return;
+    int start = (offset - 8).clamp(0, _bytes);
+    int end = offset + size.clamp(0, _bytes - 8);
+    for (int i = start; i <= end; i++) {
+      pointers.remove(i);
+    }
+  }
+
+  /**
+   * Primitive accessor methods.  These each read a value from the C memory at
+   * the specified offset.
+   */
+  int getUInt64(int offset) {
+    checkPointers(offset, 8);
+    return data.getUint64(offset);
+  }
+  int getInt64(int offset) {
+    checkPointers(offset, 8);
+    return data.getInt64(offset);
+  }
+  int getUInt32(int offset) {
+    checkPointers(offset, 4);
+    return data.getUint64(offset);
+  }
+  int getInt32(int offset) {
+    checkPointers(offset, 4);
+    return data.getInt64(offset);
+  }
+  int getUInt16(int offset) {
+    checkPointers(offset, 2);
+    return data.getUint64(offset);
+  }
+  int getInt16(int offset) {
+    checkPointers(offset, 2);
+    return data.getInt64(offset);
+  }
+  int getUInt8(int offset) {
+    checkPointers(offset, 1);
+    return data.getUint64(offset);
+  }
+  int getInt8(int offset) {
+    checkPointers(offset, 1);
+    return data.getInt64(offset);
+  }
+  double getFloat32(int offset) {
+    checkPointers(offset, 4);
+    return data.getFloat32(offset);
+  }
+  double getFloat64(int offset) {
+    checkPointers(offset, 8);
+    return data.getFloat64(offset);
+  }
+  void setUInt64(int offset, int value) {
+    checkPointers(offset, 8);
+    data.setUint64(offset, value);
+  }
+  void setInt64(int offset, int value) {
+    checkPointers(offset, 8);
+    data.setInt64(offset, value);
+  }
+  void setUInt32(int offset, int value) {
+    checkPointers(offset, 4);
+    data.setUint64(offset, value);
+  }
+  void setInt32(int offset, int value) {
+    checkPointers(offset, 4);
+    data.setInt64(offset, value);
+  }
+  void setUInt16(int offset, int value) {
+    checkPointers(offset, 2);
+    data.setUint64(offset, value);
+  }
+  void setInt16(int offset, int value) {
+    checkPointers(offset, 2);
+    data.setInt64(offset, value);
+  }
+  void setUInt8(int offset, int value) {
+    checkPointers(offset, 1);
+    data.setUint64(offset, value);
+  }
+  void setInt8(int offset, int value) {
+    checkPointers(offset, 1);
+    data.setInt64(offset, value);
+  }
+  void setFloat32(int offset, double value) {
+    checkPointers(offset, 4);
+    data.setFloat32(offset, value);
+  }
+  void setFloat64(int offset, double value) {
+    checkPointers(offset, 8);
+    data.setFloat64(offset, value);
+  }
+
+
   /**
    * The data.
    */
-  ByteBuffer _data;
-  ByteBuffer get data => _data;
+  ByteData _data;
+  ByteData get data => _data;
+  /**
+   * Size of the data
+   */
+  int _bytes;
 
-  C__Memory(int bytes) {
-    // Set the object ID in the address.
-    _baseAddress = _objectID << 32;
-    ++_objectID;
+  DartCMemory.alloc(this._bytes) {
     // Allocate the memory.
-    Uint8List mem = new Uint8List(bytes);
-    _data = mem.buffer;
-    C__Memory_Map[_baseAddress] = this;
+    Uint8List mem = new Uint8List(_bytes);
+    _data = new ByteData.view(mem.buffer);
   }
-}
 
-/**
- * Represents basic C types.
- */
-class C__TYPE_DEFINITION {
-  // Void.
-  final bool isVoid;
-
-  // Pointer.
-  final int pointerLevel;
-
-  // Number.
-  final bool isNumber;
-  final bool isSigned;
-
-  // Size.
-  int get byteSize => pointerLevel > 0 ? C__TYPE_DEFINITION.pointer_width :
-      _byteSize;
-  final int _byteSize;
-
-  /**
-   * Private constructor. Please use static methods instead.
-   */
-  C__TYPE_DEFINITION(int pointerLevel, {bool isVoid, bool isNumber, bool
-      isSigned, int byteSize})
-      : isVoid = isVoid,
-        pointerLevel = pointerLevel,
-        isNumber = isNumber,
-        isSigned = isSigned,
-        _byteSize = byteSize;
-
-  /**
-   * Return a new instance of the type at the given memory location.
-   */
-  C__TYPE at(C__Memory memory, int offset) {
-    if (this.pointerLevel > 0) {
-      return new C__TYPE_Pointer.toMemory(memory, offset);
-    } else if (this == C__TYPE_DEFINITION.int64_t) {
-      return new C__TYPE_Int64(memory, offset);
+  void memcpy(DartCMemory other, int offset, int otherOffset, int length) {
+    ByteData otherData = other.data;
+    for (int i = 0; i < length; i++) {
+      _data.setUint8(offset, otherData.getUint8(otherOffset));
+      pointers[offset++] = other.pointers[otherOffset++];
     }
-  }
-
-  // Type definitions.
-
-  /**
-   * Returns a type definition for void.
-   */
-  static C__TYPE_DEFINITION get void_t => _void;
-  static C__TYPE_DEFINITION _void = new C__TYPE_DEFINITION(0, isVoid: true,
-      byteSize: 0);
-
-  /**
-   * Return a type defintion for a signed 64-bit integer.
-   */
-  static C__TYPE_DEFINITION get int64_t => _int64;
-  static C__TYPE_DEFINITION _int64 = new C__TYPE_DEFINITION(0, isNumber: true,
-      isSigned: true, byteSize: 8);
-
-  /**
-   * Returns the width of a pointer.
-   */
-  static int get pointer_width => 8;
-
-  /**
-   * Returns a type definition for a pointer to this type definition.
-   */
-  C__TYPE_DEFINITION get pointer_t => new C__TYPE_DEFINITION(pointerLevel + 1,
-      isVoid: isVoid, isNumber: isNumber, isSigned: isSigned, byteSize: _byteSize);
-
-  /**
-   * Returns a type definition for the type this pointer points to, or null if this type is not a
-   * pointer.
-   */
-  C__TYPE_DEFINITION get target_t {
-    if (pointerLevel > 0) {
-      return new C__TYPE_DEFINITION(pointerLevel - 1, isVoid: isVoid, isNumber:
-          isNumber, isSigned: isSigned, byteSize: _byteSize);
-    } else {
-      return null;
-    }
-  }
-
-  bool operator ==(var other) {
-    return super == other || (other is C__TYPE_DEFINITION && isVoid ==
-        other.isVoid && pointerLevel == other.pointerLevel && isNumber == other.isNumber
-        && isSigned == other.isSigned && byteSize == other.byteSize);
-  }
-
-  int get hashCode {
-    return (isVoid ? 0 : 1) ^ (isNumber ? 2 : 4) ^ (isSigned ? 8 : 16) ^
-        byteSize ^ pointerLevel;
   }
 }
 
 /**
  * Common superclass for all C types.
  */
-abstract class C__TYPE {
-  /**
-   * The type definition.
-   */
-  C__TYPE_DEFINITION get definition => _definition;
-  C__TYPE_DEFINITION _definition;
-
+abstract class DartCObject {
   /**
    * The memory storing the data.
    */
-  C__Memory get memory => _memory;
-  C__Memory _memory;
+  DartCMemory memory;
 
   /**
-   * The offset in the memory, in bytes.
+   * The size of the object.
    */
-  int get offset => _offset;
-  int _offset;
+  int sizeof;
+  /**
+   * The offset within the memory of the start of this object.
+   */
+  int offset;
 
   /**
    * The address.
    */
-  int get address => memory.baseAddress + offset;
-
-  /**
-   * A view on the memory at the offset.
-   */
-  ByteData get view => _view;
-  ByteData _view;
+  int get address => (memory.baseAddress << 32) + offset;
 
   /**
    * Initialise the type with the given definition, memory and offset in bytes.
    */
-  C__TYPE(C__TYPE_DEFINITION definition, C__Memory memory, int offset)
-      : _definition = definition,
-        _memory = memory,
-        _offset = offset,
-        _view = new ByteData.view(memory.data, offset);
+  DartCObject(this.memory, this.sizeof, this.offset);
 
   /**
    * Sets the given value in the memory of the variable.
    */
-  C__TYPE set(C__TYPE newValue) {
-    if (!(definition == newValue.definition)) {
-      throw new UnsupportedError(
-          "Types must explicitly be casted before assigning");
-    }
-    C__memcpy(pointer(), newValue.pointer(), definition.byteSize);
+  DartCObject set(DartCObject newValue) {
+    // Make sure that we're copying from an object that is the same size.
+    assert(sizeof == newValue.sizeof);
+    memory.memcpy(newValue.memory, offset, newValue.offset, sizeof);
     return this;
   }
-
   /**
    * Returns a C pointer to this instance.
    */
-  C__TYPE_Pointer pointer() {
+  C__TYPE_Pointer addressOf() {
     return new C__TYPE_Pointer.toObject(this);
   }
-
   /**
-   * Checks equality.
+   * Abstract accessors.  Gets the value as one of the primitive C types.
    */
-  bool operator ==(var other) {
-    return super == other || (other is C__TYPE && other.view.getInt64(0) ==
-        this.view.getInt64(0));
+  DartCObject unsignedCharValue();
+  DartCObject signedCharValue();
+  DartCObject unsignedShortValue();
+  DartCObject signedShortValue();
+  DartCObject unsignedIntValue();
+  DartCObject signedIntValue();
+  DartCObject unsignedLongValue();
+  DartCObject signedLongValue();
+  DartCObject floatValue();
+  DartCObject doubleValue();
+  /**
+   * Helpers for aliases.
+   */
+  DartCObject charValue() {
+    return unsignedCharValue();
   }
-
-  /**
-   * Hash code.
-   */
-  int get hashCode {
-    return this.view.getInt64(0).hashCode;
+  DartCObject unsignedLongLongValue() {
+    return unsignedLongValue();
+  }
+  DartCObject signedLongLongValue() {
+    return signedLongValue();
   }
 }
 
 /**
- * Represents an unknown type.
- * Note: Only used internally, for pointers.
+ * Abstract superclass for all primitive integer types.
+ *
+ * Type promotion for arithmetic is handled in the compiler, so concrete
+ * subclasses of this just need to be able to construct any of the required
+ * integer types.  We do this by getting the value as a Dart integer and then
+ * constructing the correct concrete subclass.
  */
-class C__TYPE_Void extends C__TYPE {
-  C__TYPE_Void(C__Memory memory, int offset) : super(C__TYPE_DEFINITION.void_t,
-      memory, offset);
+abstract class DartCInteger extends DartCObject {
+  DartCInteger(DartCMemory memory, int size, int offset) : super(memory, size,
+      offset);
+  DartCInteger.withSize(int size) : super(new DartCMemory.alloc(size), size, 0);
 
   /**
-   * Return a new instance of the type backed by the same data as the given variable.
+   * Access this value as a Dart integer.
    */
-  C__TYPE_Void.from(C__TYPE variable) : this(variable.memory, variable.offset);
+  int intValue();
+  /**
+   * Set this value from a Dart integer.
+   */
+  void setIntValue(int v);
 
   /**
-   * Allocate a new instance on the stack.
+   * Construct an instance of the subclass
    */
-  C__TYPE_Void.local() : this(new C__Memory(C__TYPE_DEFINITION.void_t.byteSize),
-      0);
-}
-
-/**
- * Represents a 64-bit integer.
- */
-class C__TYPE_Int64 extends C__TYPE {
-  C__TYPE_Int64(C__Memory memory, int offset) : super(
-      C__TYPE_DEFINITION.int64_t, memory, offset);
-
-
+  DartCInteger construct();
   /**
-   * Return a new instance of the type backed by the same data as the given variable.
+   * Constructs a new instance of this class from the Dart integer.
    */
-  C__TYPE_Int64.from(C__TYPE variable) : this(variable.memory, variable.offset);
-
-  /**
-   * Allocate a new instance on the stack.
-   */
-  C__TYPE_Int64.local() : this(new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize
-      ), 0);
-
-  /**
-   * Initialises a 64-bit integer literal.
-   */
-  C__TYPE_Int64.literal(int literal) : 
-    super(C__TYPE_DEFINITION.int64_t, new C__Memory(C__TYPE_DEFINITION.int64_t.byteSize), 0) {
-    view.setInt64(0, literal);
+  DartCInteger constructFromInt(int v) {
+    DartCInteger i = construct();
+    i.setIntValue(v);
+    return i;
   }
 
-  bool operator <(C__TYPE_Int64 other) {
-    return view.getInt64(0) < other.view.getInt64(0);
-  }
-
-  bool operator <=(C__TYPE_Int64 other) {
-    return view.getInt64(0) <= other.view.getInt64(0);
-  }
-
-  bool operator >(C__TYPE_Int64 other) {
-    return view.getInt64(0) > other.view.getInt64(0);
-  }
-
-  dynamic operator +(C__TYPE_Int64 other) {
-    int v = view.getInt64(0);
-    v += other.view.getInt64(0);
-    return new C__TYPE_Int64.literal(v);
-  }
-
-  dynamic operator -(C__TYPE_Int64 other) {
-    int v = view.getInt64(0);
-    v -= other.view.getInt64(0);
-    return new C__TYPE_Int64.literal(v);
-  }
-
-  dynamic operator *(C__TYPE_Int64 other) {
-    int v = view.getInt64(0);
-    v *= other.view.getInt64(0);
-    return new C__TYPE_Int64.literal(v);
-  }
-
-  dynamic operator /(C__TYPE_Int64 other) {
-    int v = view.getInt64(0);
-    v ~/= other.view.getInt64(0);
-    return new C__TYPE_Int64.literal(v);
-  }
-
-  dynamic inc() {
-    view.setInt64(0, view.getInt64(0) + 1);
+  bool operator <(DartCInteger other) => intValue() < other.intValue();
+  bool operator <=(DartCInteger other) => intValue() <= other.intValue();
+  bool operator >(DartCInteger other) => intValue() > other.intValue();
+  DartCInteger operator +(DartCInteger other) => constructFromInt(intValue() +
+      other.intValue());
+  DartCInteger operator -(DartCInteger other) => constructFromInt(intValue() -
+      other.intValue());
+  DartCInteger operator *(DartCInteger other) => constructFromInt(intValue() *
+      other.intValue());
+  DartCInteger operator /(DartCInteger other) => constructFromInt(intValue() ~/
+      other.intValue());
+  DartCInteger inc() {
+    setIntValue(intValue() + 1);
     return this;
   }
-
-  dynamic shl(C__TYPE_Int64 other) {
-    int v = view.getInt64(0);
-    v <<= other.view.getInt64(0);
-    return new C__TYPE_Int64.literal(v);
+  DartCInteger dec() {
+    setIntValue(intValue() - 1);
+    return this;
   }
+  DartCInteger operator <<(DartCInteger other) => constructFromInt(intValue() <<
+      other.intValue());
+  DartCInteger operator >>(DartCInteger other) => constructFromInt(intValue() >>
+      other.intValue());
+  /**
+   * Type cast operators.
+   */
+  DartCObject unsignedCharValue() => new DartCUnsignedChar.fromInt(intValue());
+  DartCObject signedCharValue() => new DartCSignedChar.fromInt(intValue());
+  DartCObject unsignedShortValue() => new DartCUnsignedShort.fromInt(intValue()
+      );
+  DartCObject signedShortValue() => new DartCUnsignedShort.fromInt(intValue());
+  DartCObject unsignedIntValue() => new DartCUnsignedInt.fromInt(intValue());
+  DartCObject signedIntValue() => new DartCUnsignedInt.fromInt(intValue());
+  DartCObject unsignedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject signedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject floatValue() => new DartCFloat.fromInt(intValue());
+  DartCObject doubleValue() => new DartCDouble.fromInt(intValue());
 
-  dynamic shr(C__TYPE_Int64 other) {
-    int v = view.getInt64(0);
-    v >>= other.view.getInt64(0);
-    return new C__TYPE_Int64.literal(v);
-  }
 }
+abstract class DartCFloating extends DartCObject {
+  DartCFloating(DartCMemory memory, int size, int offset) : super(memory, size,
+      offset);
+  DartCFloating.withSize(int size) : super(new DartCMemory.alloc(size), size, 0);
+
+  /**
+   * Access this value as a Dart number.
+   */
+  num numValue();
+  /**
+   * Set this value from a Dart number.
+   */
+  void setNumValue(num v);
+  int intValue() => numValue().round();
+  void setIntValue(int v) => setNumValue(v);
+  /**
+   * Construct an instance of the subclass
+   */
+  DartCFloating construct();
+  /**
+   * Constructs a new instance of this class from the Dart integer.
+   */
+  DartCFloating constructFromNum(num v) {
+    DartCFloating i = construct();
+    i.setNumValue(v);
+    return i;
+  }
+
+  bool operator <(DartCFloating other) => numValue() < other.numValue();
+  bool operator <=(DartCFloating other) => numValue() <= other.numValue();
+  bool operator >(DartCFloating other) => numValue() > other.numValue();
+  DartCFloating operator +(DartCFloating other) => constructFromNum(numValue() +
+      other.numValue());
+  DartCFloating operator -(DartCFloating other) => constructFromNum(numValue() -
+      other.numValue());
+  DartCFloating operator *(DartCFloating other) => constructFromNum(numValue() *
+      other.numValue());
+  DartCFloating operator /(DartCFloating other) => constructFromNum(numValue() ~/
+      other.numValue());
+  DartCFloating inc() {
+    setNumValue(numValue() + 1);
+    return this;
+  }
+  DartCFloating dec() {
+    setNumValue(numValue() - 1);
+    return this;
+  }
+  /**
+   * Type cast operators.
+   */
+  DartCObject unsignedCharValue() => new DartCUnsignedChar.fromInt(intValue());
+  DartCObject signedCharValue() => new DartCSignedChar.fromInt(intValue());
+  DartCObject unsignedShortValue() => new DartCUnsignedShort.fromInt(intValue()
+      );
+  DartCObject signedShortValue() => new DartCUnsignedShort.fromInt(intValue());
+  DartCObject unsignedIntValue() => new DartCUnsignedInt.fromInt(intValue());
+  DartCObject signedIntValue() => new DartCUnsignedInt.fromInt(intValue());
+  DartCObject unsignedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject signedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject floatValue() => new DartCFloat.fromNum(numValue());
+  DartCObject doubleValue() => new DartCDouble.fromNum(numValue());
+}
+
+
+class DartCFloat extends DartCFloating {
+  static final int bytes = 32;
+  static final int bits = bytes * 8;
+  num numValue() => memory.getFloat32(offset);
+  void setNumValue(num v) => memory.setFloat32(offset, v);
+  DartCFloat.fromNum(num n) : super.withSize(bytes) {
+    setNumValue(n);
+  }
+  DartCFloat.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCFloat() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCFloating construct() => new DartCFloat();
+}
+class DartCDouble extends DartCFloating {
+  static final int bytes = 32;
+  static final int bits = bytes * 8;
+  num numValue() => memory.getFloat64(offset);
+  void setNumValue(num v) => memory.setFloat64(offset, v);
+  DartCDouble.fromNum(num n) : super.withSize(bytes) {
+    setNumValue(n);
+  }
+  DartCDouble.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCDouble() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCFloating construct() => new DartCDouble();
+}
+
+
+class DartCSignedChar extends DartCInteger {
+  static final int bytes = 1;
+  static final int bits = bytes * 8;
+  int intValue() => memory.getInt8(offset);
+  void setIntValue(int v) => memory.setInt8(offset, v.toUnsigned(bits));
+  DartCSignedChar.fromInt(int n) : super.withSize(bytes) {
+    setIntValue(n);
+  }
+  DartCSignedChar.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCSignedChar() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCInteger construct() => new DartCSignedChar();
+}
+class DartCUnsignedChar extends DartCInteger {
+  static final int bytes = 1;
+  static final int bits = bytes * 8;
+  int intValue() => memory.getUInt8(offset);
+  void setIntValue(int v) => memory.setUInt8(offset, v.toSigned(bits));
+  DartCUnsignedChar.fromInt(int n) : super.withSize(bytes) {
+    setIntValue(n);
+  }
+  DartCUnsignedChar.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCUnsignedChar() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCInteger construct() => new DartCUnsignedChar();
+}
+class DartCSignedShort extends DartCInteger {
+  static final int bytes = 1;
+  static final int bits = bytes * 8;
+  int intValue() => memory.getInt8(offset);
+  void setIntValue(int v) => memory.setInt8(offset, v.toUnsigned(bits));
+  DartCSignedShort.fromInt(int n) : super.withSize(bytes) {
+    setIntValue(n);
+  }
+  DartCSignedShort.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCSignedShort() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCInteger construct() => new DartCSignedShort();
+}
+class DartCUnsignedShort extends DartCInteger {
+  static final int bytes = 2;
+  static final int bits = bytes * 8;
+  int intValue() => memory.getUInt16(offset);
+  void setIntValue(int v) => memory.setUInt16(offset, v.toSigned(bits));
+  DartCUnsignedShort.fromInt(int n) : super.withSize(bytes) {
+    setIntValue(n);
+  }
+  DartCUnsignedShort.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCUnsignedShort() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCInteger construct() => new DartCUnsignedShort();
+}
+class DartCSignedInt extends DartCInteger {
+  static final int bytes = 2;
+  static final int bits = bytes * 8;
+  int intValue() => memory.getInt16(offset);
+  void setIntValue(int v) => memory.setInt16(offset, v.toUnsigned(bits));
+  DartCSignedInt.fromInt(int n) : super.withSize(bytes) {
+    setIntValue(n);
+  }
+  DartCSignedInt.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCSignedInt() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCInteger construct() => new DartCSignedInt();
+}
+class DartCUnsignedInt extends DartCInteger {
+  static final int bytes = 4;
+  static final int bits = bytes * 8;
+  int intValue() => memory.getUInt32(offset);
+  void setIntValue(int v) => memory.setUInt32(offset, v.toSigned(bits));
+  DartCUnsignedInt.fromInt(int n) : super.withSize(bytes) {
+    setIntValue(n);
+  }
+  DartCUnsignedInt.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCUnsignedInt() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCInteger construct() => new DartCUnsignedInt();
+}
+class DartCSignedLong extends DartCInteger {
+  static final int bytes = 8;
+  static final int bits = bytes * 8;
+  int intValue() => memory.getInt64(offset);
+  void setIntValue(int v) => memory.setInt64(offset, v.toUnsigned(bits));
+  DartCSignedLong.fromInt(int n) : super.withSize(bytes) {
+    setIntValue(n);
+  }
+  DartCSignedLong.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCSignedLong() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCInteger construct() => new DartCSignedLong();
+}
+class DartCUnsignedLong extends DartCInteger {
+  static final int bytes = 8;
+  static final int bits = bytes * 8;
+  int intValue() => memory.getUInt64(offset);
+  void setIntValue(int v) => memory.setUInt64(offset, v.toSigned(bits));
+  DartCUnsignedLong.fromInt(int n) : super.withSize(bytes) {
+    setIntValue(n);
+  }
+  DartCUnsignedLong.fromMemory(DartCMemory memory, int offset) : super(memory,
+      bits, offset);
+  DartCUnsignedLong() : this.fromMemory(new DartCMemory.alloc(bits), 0);
+  DartCInteger construct() => new DartCUnsignedLong();
+}
+
 
 /**
  * Represents a pointer.
  */
-class C__TYPE_Pointer extends C__TYPE {
+class C__TYPE_Pointer extends DartCObject {
   /*
    * The object this pointer points to.
    */
-  C__TYPE get pointee {
+  DartCObject get pointee {
     if (_pointing != null) {
       return definition.target_t.at(_pointing, _pointerOffset);
     } else {
       // Try to reconstruct pointer.
       var baseAddress = (this.view.getInt64(0) >> 32) << 32;
-      _pointing = C__Memory_Map[baseAddress];
+      _pointing = dartCMemoryMap[baseAddress];
       if (_pointing == null) {
-        throw new StateError('The memory chunk this pointer points to cannot be found');
+        throw new StateError(
+            'The memory chunk this pointer points to cannot be found');
       }
       _pointerOffset = this.view.getInt64(0) & ((1 << 33) - 1);
       return pointee;
     }
   }
-  C__Memory _pointing;
+  DartCMemory _pointing;
   int _pointerOffset;
 
   /**
    * The memory chunk this pointer points to.
    */
-  C__Memory get memoryPointedTo {
+  DartCMemory get memoryPointedTo {
     if (_pointing == null) {
       pointee;
     }
@@ -350,26 +576,27 @@ class C__TYPE_Pointer extends C__TYPE {
   /**
    * Initialises a new pointer not pointing anywhere in particular.
    */
-  C__TYPE_Pointer(C__Memory memory, int offset, C__TYPE_DEFINITION pointeeType)
+  C__TYPE_Pointer(DartCMemory memory, int offset, C__TYPE_DEFINITION
+      pointeeType)
       : super(pointeeType.pointer_t, memory, offset),
         _pointerOffset = 0;
   /**
    * Return a new instance of the type backed by the same data as the given variable.
    */
-  C__TYPE_Pointer.from(C__TYPE variable, C__TYPE_DEFINITION pointeeType) : this(
-      variable.memory, variable.offset, pointeeType);
+  C__TYPE_Pointer.from(DartCObject variable, C__TYPE_DEFINITION pointeeType) :
+      this(variable.memory, variable.offset, pointeeType);
 
   /**
    * Allocate a new instance on the stack.
    */
-  C__TYPE_Pointer.local(C__TYPE_DEFINITION pointeeType) : this(new C__Memory(
+  C__TYPE_Pointer.local(C__TYPE_DEFINITION pointeeType) : this(new DartCMemory(
       C__TYPE_DEFINITION.pointer_width), 0, pointeeType);
 
   /**
    * Initialises a pointer pointing to the given object.
    */
-  C__TYPE_Pointer.toObject(C__TYPE pointee)
-      : super(pointee.definition.pointer_t, new C__Memory(
+  C__TYPE_Pointer.toObject(DartCObject pointee)
+      : super(pointee.definition.pointer_t, new DartCMemory(
           C__TYPE_DEFINITION.pointer_width), 0),
         _pointing = pointee.memory,
         _pointerOffset = pointee.offset {
@@ -379,10 +606,10 @@ class C__TYPE_Pointer extends C__TYPE {
   /**
    * Initialises a pointer pointing to an area of memory.
    */
-  C__TYPE_Pointer.toMemory(C__Memory memory, int offset) :
-    this.toObject(new C__TYPE_Int64(memory, offset));
-  
-  C__TYPE set(C__TYPE newValue) {
+  C__TYPE_Pointer.toMemory(DartCMemory memory, int offset) : this.toObject(
+      new DartCInteger(memory, offset));
+
+  DartCObject set(DartCObject newValue) {
     if (!(definition == newValue.definition)) {
       throw new UnsupportedError("Types must explicitly be casted before ");
     }
@@ -399,12 +626,12 @@ class C__TYPE_Pointer extends C__TYPE {
 
 
 
-  C__TYPE_Pointer operator +(C__TYPE other) {
+  C__TYPE_Pointer operator +(DartCObject other) {
     // C__TYPE_Pointer newPtr = new C__TYPE_Pointer.atOffset(this, other.
   }
 
 
-  C__TYPE index(C__TYPE_Int64 index) {
+  DartCObject index(DartCInteger index) {
     if (_pointing == null) {
       pointee;
     }
