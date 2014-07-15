@@ -36,20 +36,20 @@ class DartCMemory {
     return _baseAddress;
   }
 
-  Map<int, C__TYPE_Pointer> pointers;
+  Map<int, DartCPointer> pointers;
 
   /**
    * Get a pointer value.  If no pointer was stored here, then try to calculate
    * one from the data.
    */
-  C__TYPE_Pointer getPointer(int offset) {
-    C__TYPE_Pointer ptr = pointers[offset];
+  DartCPointer getPointer(int offset) {
+    DartCPointer ptr = pointers[offset];
     if (ptr != null) {
       return ptr;
     }
     // TODO: Pluggable policies for pointers that we're trying to reconstruct
     // from integers
-    return new C__TYPE_Pointer(getUInt64(offset));
+    return new DartCPointer.fromUInt64(getUInt64(offset));
   }
 
   /**
@@ -64,7 +64,7 @@ class DartCMemory {
     int start = (offset - 8).clamp(0, _bytes);
     int end = offset + size.clamp(0, _bytes - 8);
     for (int i = start; i <= end; i++) {
-      C__TYPE_Pointer ptr = pointers[i];
+      DartCPointer ptr = pointers[i];
       if (ptr != null) {
         data.setUint64(i, ptr.getNumericValue());
       }
@@ -236,8 +236,8 @@ abstract class DartCObject {
   /**
    * Returns a C pointer to this instance.
    */
-  C__TYPE_Pointer addressOf() {
-    return new C__TYPE_Pointer.toObject(this);
+  DartCPointer addressOf() {
+    return new DartCPointer.toObject(this);
   }
   /**
    * Abstract accessors.  Gets the value as one of the primitive C types.
@@ -537,11 +537,10 @@ class DartCUnsignedLong extends DartCInteger {
   DartCInteger construct() => new DartCUnsignedLong();
 }
 
-
 /**
  * Represents a pointer.
  */
-class C__TYPE_Pointer extends DartCObject {
+class DartCPointer extends DartCObject {
   /*
    * The object this pointer points to.
    */
@@ -576,26 +575,26 @@ class C__TYPE_Pointer extends DartCObject {
   /**
    * Initialises a new pointer not pointing anywhere in particular.
    */
-  C__TYPE_Pointer(DartCMemory memory, int offset, C__TYPE_DEFINITION
+  DartCPointer(DartCMemory memory, int offset, C__TYPE_DEFINITION
       pointeeType)
       : super(pointeeType.pointer_t, memory, offset),
         _pointerOffset = 0;
   /**
    * Return a new instance of the type backed by the same data as the given variable.
    */
-  C__TYPE_Pointer.from(DartCObject variable, C__TYPE_DEFINITION pointeeType) :
+  DartCPointer.from(DartCObject variable, C__TYPE_DEFINITION pointeeType) :
       this(variable.memory, variable.offset, pointeeType);
 
   /**
    * Allocate a new instance on the stack.
    */
-  C__TYPE_Pointer.local(C__TYPE_DEFINITION pointeeType) : this(new DartCMemory(
+  DartCPointer.local(C__TYPE_DEFINITION pointeeType) : this(new DartCMemory(
       C__TYPE_DEFINITION.pointer_width), 0, pointeeType);
 
   /**
    * Initialises a pointer pointing to the given object.
    */
-  C__TYPE_Pointer.toObject(DartCObject pointee)
+  DartCPointer.toObject(DartCObject pointee)
       : super(pointee.definition.pointer_t, new DartCMemory(
           C__TYPE_DEFINITION.pointer_width), 0),
         _pointing = pointee.memory,
@@ -606,7 +605,7 @@ class C__TYPE_Pointer extends DartCObject {
   /**
    * Initialises a pointer pointing to an area of memory.
    */
-  C__TYPE_Pointer.toMemory(DartCMemory memory, int offset) : this.toObject(
+  DartCPointer.toMemory(DartCMemory memory, int offset) : this.toObject(
       new DartCInteger(memory, offset));
 
   DartCObject set(DartCObject newValue) {
@@ -614,7 +613,7 @@ class C__TYPE_Pointer extends DartCObject {
       throw new UnsupportedError("Types must explicitly be casted before ");
     }
     view.setInt64(0, newValue.view.getInt64(0));
-    C__TYPE_Pointer newPointer = newValue;
+    DartCPointer newPointer = newValue;
     _pointing = newPointer._pointing;
     _pointerOffset = newPointer._pointerOffset;
     return this;
@@ -626,7 +625,7 @@ class C__TYPE_Pointer extends DartCObject {
 
 
 
-  C__TYPE_Pointer operator +(DartCObject other) {
+  DartCPointer operator +(DartCObject other) {
     // C__TYPE_Pointer newPtr = new C__TYPE_Pointer.atOffset(this, other.
   }
 
