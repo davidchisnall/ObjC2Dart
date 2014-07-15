@@ -548,6 +548,8 @@ class DartCPointer extends DartCObject {
     if (_pointing != null) {
       return definition.target_t.at(_pointing, _pointerOffset);
     } else {
+      // TODO: Provide an option for this to return null if arbitrary pointer
+      // arithmetic is not supported.
       // Try to reconstruct pointer.
       var baseAddress = (this.view.getInt64(0) >> 32) << 32;
       _pointing = dartCMemoryMap[baseAddress];
