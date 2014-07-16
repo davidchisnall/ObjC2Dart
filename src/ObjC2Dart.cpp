@@ -381,17 +381,29 @@ public:
 
   bool emitSimpleBinOp(Expr *LHS, Expr *RHS, const char *OpStr, bool Assign) {
     bool ret;
+    const char *end = ")";
+    // TODO: We could remove a lot of overhead on arithmetic if we were to
+    // provide methods on DartCInteger for compound assignment
     if (Assign) {
-      OS << "() { var __tmp = ";
-      ret = TraverseStmt(LHS);
-      OS << "; __tmp";
+      // If the LHS is just a variable reference, then we don't need to create
+      // a closure to avoid double evaluation.  If it isn't, then we do.
+      if (isa<DeclRefExpr>(LHS)) {
+        ret = TraverseStmt(LHS);
+        OS << ".set(";
+        ret = TraverseStmt(LHS);
+        Assign = false;
+        end = "))";
+      } else {
+        OS << "() { var __tmp = ";
+        ret = TraverseStmt(LHS);
+        OS << "; __tmp";
+        end = "; }()";
+      }
     } else
       ret = TraverseStmt(LHS);
     OS << OpStr << '(';
     ret &= TraverseStmt(RHS);
-    OS << ')';
-    if (Assign)
-      OS << "; }()";
+    OS << end;
     return ret;
   }
 
@@ -433,9 +445,13 @@ public:
         OS << "; }()";
         return true;
       }
+      case BO_EQ:
+        return emitSimpleBinOp(LHS, RHS, ".eq", false);
+      case BO_NE:
+        return emitSimpleBinOp(LHS, RHS, ".ne", false);
       case BO_Assign:
-        return emitSimpleBinOp(LHS, RHS, ".set", IsAssign);
-        IsAssign = true;
+        // This is an assignment, but it's not also an operation
+        return emitSimpleBinOp(LHS, RHS, ".set", false);
       case BO_MulAssign: case BO_DivAssign: case BO_RemAssign:
       case BO_AddAssign: case BO_SubAssign: case BO_AndAssign:
       case BO_XorAssign: case BO_OrAssign: case BO_ShrAssign:
@@ -444,8 +460,9 @@ public:
       // These operators are the same in dart and C:
       case BO_And: case BO_Xor: case BO_Or: case BO_LAnd: case BO_LOr:
       case BO_Mul: case BO_Div: case BO_Rem: case BO_Add: case BO_Sub:
-      case BO_LT: case BO_GT: case BO_LE: case BO_GE: case BO_EQ: case BO_NE:
-      case BO_Shl: case BO_Shr:
+      case BO_LT: case BO_GT: case BO_LE: case BO_GE: case BO_Shl: case BO_Shr:
+        if (IsAssign)
+          Opc = BinaryOperator::getOpForCompoundAssignment(Opc);
         return emitSimpleBinOp(LHS, RHS,
           BinaryOperator::getOpcodeStr(Opc).str().c_str(), IsAssign);
       // C++ operators, not supported
