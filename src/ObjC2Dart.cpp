@@ -248,15 +248,13 @@ public:
 #pragma mark Statements
 
   bool TraverseStmt(Stmt *s) {
-    if (!s) {
+    if (!s)
       return true;
-    } else if (s->getStmtClass() == Stmt::BinaryOperatorClass) {
-      return TraverseBinaryOperator(static_cast<BinaryOperator *>(s));
-    } else if (s->getStmtClass() == Stmt::UnaryOperatorClass) {
-      return TraverseUnaryOperator(static_cast<UnaryOperator *>(s));
-    } else {
-      return RecursiveASTVisitor::TraverseStmt(s);
-    }
+    else if (BinaryOperator *BO = dyn_cast<BinaryOperator>(s))
+      return TraverseBinaryOperator(BO);
+    else if (UnaryOperator *UO = dyn_cast<UnaryOperator>(s))
+      return TraverseUnaryOperator(UO);
+    return RecursiveASTVisitor::TraverseStmt(s);
   }
 
   bool TraverseCompoundStmt(CompoundStmt *s) {
@@ -405,28 +403,6 @@ public:
     ret &= TraverseStmt(RHS);
     OS << end;
     return ret;
-  }
-
-  bool TraverseBinMulAssign(CompoundAssignOperator *O) {
-    return TraverseBinaryOperator(O);
-  }
-  bool TraverseBinDivAssign(CompoundAssignOperator *O) {
-    return TraverseBinaryOperator(O);
-  }
-  bool TraverseBinRemAssign(CompoundAssignOperator *O) {
-    return TraverseBinaryOperator(O);
-  }
-  bool TraverseBinAddAssign(CompoundAssignOperator *O) {
-    return TraverseBinaryOperator(O);
-  }
-  bool TraverseBinSubAssign(CompoundAssignOperator *O) {
-    return TraverseBinaryOperator(O);
-  }
-  bool TraverseBinXorAssign(CompoundAssignOperator *O) {
-    return TraverseBinaryOperator(O);
-  }
-  bool TraverseBinOrAssign(CompoundAssignOperator *O) {
-    return TraverseBinaryOperator(O);
   }
 
   bool TraverseBinaryOperator(BinaryOperator *O) {
