@@ -244,7 +244,7 @@ abstract class DartCObject {
    * Returns a C pointer to this instance.
    */
   DartCPointer addressOf() {
-    return new DartCPointer.toObject(this);
+    return new DartCPointer.pointerTo(this);
   }
   /**
    * Abstract accessors.  Gets the value as one of the primitive C types.
