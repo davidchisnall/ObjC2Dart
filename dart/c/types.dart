@@ -36,6 +36,18 @@ class DartCMemory {
     return _baseAddress;
   }
 
+  /**
+   * 'Free' the underlying memory.  The memory will not be deallocated until the
+   * garbage collector detects that it is free.  Calling this removes the
+   * memory map entry, ensuring that it is not possible to construct a pointer
+   * to this object from an integer.
+   */
+  void free(){
+    if (_baseAddress != 0) {
+      dartCMemoryMap[_baseAddress] = null;
+    }
+  }
+
   Map<int, DartCPointer> pointers;
 
   /**
