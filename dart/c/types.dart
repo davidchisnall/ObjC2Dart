@@ -66,7 +66,7 @@ class DartCMemory {
     for (int i = start; i <= end; i++) {
       DartCPointer ptr = pointers[i];
       if (ptr != null) {
-        data.setUint64(i, ptr.getNumericValue());
+        data.setUint64(i, ptr.intValue());
       }
     }
   }
@@ -538,108 +538,104 @@ class DartCUnsignedLong extends DartCInteger {
 }
 
 /**
- * Represents a pointer.
+ * A C pointer.  C pointers either refer to a valid object, one element past a
+ * valid object, or to null.  In this implementation, they can also hold
+ * arbitrary numeric values, with a best-effort attempt to resurrect them being
+ * made later.
+ *
+ * Pointers have a type associated with them.  Pointer casts require
+ * reinterpreting the data, constructing a new underlying object backed by some
+ * existing memory.
  */
 class DartCPointer extends DartCObject {
+  /**
+   * The object that this is currently pointing to, or null if there is no such
+   * object.
+   */
+  DartCObject baseObject;
+  /**
+   * The offset of this pointer.
+   */
+  int pointerOffset;
+  /**
+   */
+  DartCObject _currentObject;
   /*
    * The object this pointer points to.
    */
-  DartCObject get pointee {
-    if (_pointing != null) {
-      return definition.target_t.at(_pointing, _pointerOffset);
-    } else {
-      // TODO: Provide an option for this to return null if arbitrary pointer
-      // arithmetic is not supported.
-      // Try to reconstruct pointer.
-      var baseAddress = (this.view.getInt64(0) >> 32) << 32;
-      _pointing = dartCMemoryMap[baseAddress];
-      if (_pointing == null) {
-        throw new StateError(
-            'The memory chunk this pointer points to cannot be found');
+  DartCObject dereference() {
+    if (_currentObject == null) {
+      if (offset == 0) {
+        _currentObject = baseObject;
+      } else {
+        _currentObject = baseObject.constructAtOffset(0);
       }
-      _pointerOffset = this.view.getInt64(0) & ((1 << 33) - 1);
-      return pointee;
+    }
+    return _currentObject;
+  }
+
+  /**
+   * Returns the pointer interpreted as an integer
+   */
+  int intValue() {
+    if (_currentObject == 0) {
+      return pointerOffset;
+    }
+    // This will implicitly insert the base memory in the object map,
+    // if required.
+    return (_currentObject.memory.baseAddress << 32) + pointerOffset;
+  }
+
+  /**
+   * Initialises a new pointer pointing to a specific object.
+   */
+  DartCPointer.pointerTo(DartCObject this.baseObject)
+      : super.alloc(8);
+
+  DartCPointer.fromUInt64(int intVal) : super.alloc(8) {
+    offset = intVal.toUnsigned(32);
+    DartCMemory mem = dartCMemoryMap[intVal >> 32];
+    // Pointers constructed from integers are char*.  The compiler is
+    // responsible for then casting them to the correct type.
+    if (mem != null) {
+      baseObject = new DartCUnsignedChar.fromMemory(mem, offset);
     }
   }
-  DartCMemory _pointing;
-  int _pointerOffset;
 
-  /**
-   * The memory chunk this pointer points to.
-   */
-  DartCMemory get memoryPointedTo {
-    if (_pointing == null) {
-      pointee;
-    }
-    return _pointing;
-  }
-
-  /**
-   * Initialises a new pointer not pointing anywhere in particular.
-   */
-  DartCPointer(DartCMemory memory, int offset, C__TYPE_DEFINITION
-      pointeeType)
-      : super(pointeeType.pointer_t, memory, offset),
-        _pointerOffset = 0;
-  /**
-   * Return a new instance of the type backed by the same data as the given variable.
-   */
-  DartCPointer.from(DartCObject variable, C__TYPE_DEFINITION pointeeType) :
-      this(variable.memory, variable.offset, pointeeType);
-
-  /**
-   * Allocate a new instance on the stack.
-   */
-  DartCPointer.local(C__TYPE_DEFINITION pointeeType) : this(new DartCMemory(
-      C__TYPE_DEFINITION.pointer_width), 0, pointeeType);
-
-  /**
-   * Initialises a pointer pointing to the given object.
-   */
-  DartCPointer.toObject(DartCObject pointee)
-      : super(pointee.definition.pointer_t, new DartCMemory(
-          C__TYPE_DEFINITION.pointer_width), 0),
-        _pointing = pointee.memory,
-        _pointerOffset = pointee.offset {
-    view.setInt64(0, pointee.address);
-  }
-
-  /**
-   * Initialises a pointer pointing to an area of memory.
-   */
-  DartCPointer.toMemory(DartCMemory memory, int offset) : this.toObject(
-      new DartCInteger(memory, offset));
-
-  DartCObject set(DartCObject newValue) {
-    if (!(definition == newValue.definition)) {
-      throw new UnsupportedError("Types must explicitly be casted before ");
-    }
-    view.setInt64(0, newValue.view.getInt64(0));
-    DartCPointer newPointer = newValue;
-    _pointing = newPointer._pointing;
-    _pointerOffset = newPointer._pointerOffset;
-    return this;
-  }
   /**
    * Construct a new pointer that is at a given offset from another.
+   *
+   * Note that this method *is* allowed to construct invalid pointers and so
+   * must not dereference the pointer.
    */
-  //C__TYPE_Pointer.atOffset(C__TYPE_Pointer other, int offset) :
-
-
-
-  DartCPointer operator +(DartCObject other) {
-    // C__TYPE_Pointer newPtr = new C__TYPE_Pointer.atOffset(this, other.
+  DartCPointer.atOffset(DartCPointer other, int deltaOffset) : super.alloc(8) {
+    baseObject = other.baseObject;
+    offset = other.offset + deltaOffset;
   }
+
+  DartCPointer operator +(DartCInteger other) => new DartCPointer.atOffset(this,
+      other.intValue());
+  DartCPointer operator -(DartCInteger other) => new DartCPointer.atOffset(this,
+      other.intValue());
 
 
   DartCObject index(DartCInteger index) {
-    if (_pointing == null) {
-      pointee;
-    }
-    int indexV = index.view.getInt64(0);
-    _pointerOffset += indexV * definition.target_t.byteSize;
-    var ret = pointee;
-    _pointerOffset -= indexV * definition.target_t.byteSize;
-    return ret;
+    DartCObject obj = dereference();
+    return obj.constructAtOffset(index.intValue() * obj.sizeof);
   }
+
+  DartCObject unsignedCharValue() => new DartCUnsignedChar.fromInt(intValue());
+  DartCObject signedCharValue() => new DartCSignedChar.fromInt(intValue());
+  DartCObject unsignedShortValue() => new DartCUnsignedShort.fromInt(intValue()
+      );
+  DartCObject signedShortValue() => new DartCUnsignedShort.fromInt(intValue());
+  DartCObject unsignedIntValue() => new DartCUnsignedInt.fromInt(intValue());
+  DartCObject signedIntValue() => new DartCUnsignedInt.fromInt(intValue());
+  DartCObject unsignedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject signedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject floatValue() => new DartCFloat.fromNum(intValue());
+  DartCObject doubleValue() => new DartCDouble.fromNum(intValue());
+
+
+
 }
