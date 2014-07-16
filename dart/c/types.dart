@@ -31,6 +31,7 @@ class DartCMemory {
       // For now, we don't support allocating more than 2^32 objects over the
       // lifetime of a program.
       assert(_baseAddress < 0xffffffff);
+      dartCMemoryMap[_baseAddress] = this;
     }
     return _baseAddress;
   }
