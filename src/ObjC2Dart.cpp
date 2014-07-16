@@ -395,7 +395,25 @@ public:
     return ret;
   }
 
-  bool TraverseCompoundAssignOperator(CompoundAssignOperator *O) {
+  bool TraverseBinMulAssign(CompoundAssignOperator *O) {
+    return TraverseBinaryOperator(O);
+  }
+  bool TraverseBinDivAssign(CompoundAssignOperator *O) {
+    return TraverseBinaryOperator(O);
+  }
+  bool TraverseBinRemAssign(CompoundAssignOperator *O) {
+    return TraverseBinaryOperator(O);
+  }
+  bool TraverseBinAddAssign(CompoundAssignOperator *O) {
+    return TraverseBinaryOperator(O);
+  }
+  bool TraverseBinSubAssign(CompoundAssignOperator *O) {
+    return TraverseBinaryOperator(O);
+  }
+  bool TraverseBinXorAssign(CompoundAssignOperator *O) {
+    return TraverseBinaryOperator(O);
+  }
+  bool TraverseBinOrAssign(CompoundAssignOperator *O) {
     return TraverseBinaryOperator(O);
   }
 
@@ -417,22 +435,17 @@ public:
       }
       case BO_Assign:
         return emitSimpleBinOp(LHS, RHS, ".set", IsAssign);
-      case BO_ShlAssign:
         IsAssign = true;
-      case BO_Shl:
-        return emitSimpleBinOp(LHS, RHS, ".shl", IsAssign);
-      case BO_ShrAssign:
-        IsAssign = true;
-      case BO_Shr:
-        return emitSimpleBinOp(LHS, RHS, ".shr", IsAssign);
       case BO_MulAssign: case BO_DivAssign: case BO_RemAssign:
       case BO_AddAssign: case BO_SubAssign: case BO_AndAssign:
-      case BO_XorAssign: case BO_OrAssign:
+      case BO_XorAssign: case BO_OrAssign: case BO_ShrAssign:
+      case BO_ShlAssign:
         IsAssign = true;
       // These operators are the same in dart and C:
       case BO_And: case BO_Xor: case BO_Or: case BO_LAnd: case BO_LOr:
       case BO_Mul: case BO_Div: case BO_Rem: case BO_Add: case BO_Sub:
       case BO_LT: case BO_GT: case BO_LE: case BO_GE: case BO_EQ: case BO_NE:
+      case BO_Shl: case BO_Shr:
         return emitSimpleBinOp(LHS, RHS,
           BinaryOperator::getOpcodeStr(Opc).str().c_str(), IsAssign);
       // C++ operators, not supported
