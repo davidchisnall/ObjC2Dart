@@ -400,8 +400,8 @@ abstract class DartCFloating extends DartCArithmetic {
       other.numValue());
   DartCFloating operator *(DartCFloating other) => constructFromNum(numValue() *
       other.numValue());
-  DartCFloating operator /(DartCFloating other) => constructFromNum(numValue() ~/
-      other.numValue());
+  DartCFloating operator /(DartCFloating other) => constructFromNum(numValue()
+      / other.numValue());
   DartCFloating inc() {
     setNumValue(numValue() + 1);
     return this;
