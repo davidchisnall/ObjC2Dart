@@ -225,6 +225,13 @@ abstract class DartCObject {
   DartCObject(this.memory, this.sizeof, this.offset);
 
   /**
+   * Constructs a new object with a new backing store.
+   */
+  DartCObject.alloc(this.sizeof) {
+    memory = new DartCMemory.alloc(sizeof);
+  }
+
+  /**
    * Sets the given value in the memory of the variable.
    */
   DartCObject set(DartCObject newValue) {
@@ -277,7 +284,7 @@ abstract class DartCObject {
 abstract class DartCInteger extends DartCObject {
   DartCInteger(DartCMemory memory, int size, int offset) : super(memory, size,
       offset);
-  DartCInteger.withSize(int size) : super(new DartCMemory.alloc(size), size, 0);
+  DartCInteger.withSize(int size) : super.alloc(size);
 
   /**
    * Access this value as a Dart integer.
@@ -343,7 +350,7 @@ abstract class DartCInteger extends DartCObject {
 abstract class DartCFloating extends DartCObject {
   DartCFloating(DartCMemory memory, int size, int offset) : super(memory, size,
       offset);
-  DartCFloating.withSize(int size) : super(new DartCMemory.alloc(size), size, 0);
+  DartCFloating.withSize(int size) : super.alloc(size);
 
   /**
    * Access this value as a Dart number.
