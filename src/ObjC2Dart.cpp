@@ -549,8 +549,10 @@ public:
   bool TraverseBuiltinType(BuiltinType *t) {
     if (t->isVoidType()) {
       OS << "void";
-    } else if (t->isSignedInteger() || t->isUnsignedInteger()) {
-      OS << "C__TYPE_Int64";
+    } else if (t->isIntegerType()) {
+      OS << DartCClassForCIntegerType(t);
+    } else {
+      return false;
     }
     return true;
   }
@@ -600,9 +602,45 @@ public:
   }
 
 #pragma mark Literals
+  const char *DartCClassForCIntegerType(QualType Ty) {
+    Ty = Ty.getCanonicalType();
+    assert(Ty->isIntegerType());
+    const BuiltinType *BT = dyn_cast<BuiltinType>(Ty.getTypePtr());
+    assert(BT && "Found non-builtin integer type!");
+    return DartCClassForCIntegerType(BT);
+  }
+  const char *DartCClassForCIntegerType(const BuiltinType *BT) {
+    switch (BT->getKind()) {
+      case BuiltinType::Bool:
+      case BuiltinType::Char_U:
+      case BuiltinType::UChar:
+        return "DartCUnsignedChar";
+      case BuiltinType::SChar:
+      case BuiltinType::Char_S:
+        return "DartCSignedChar";
+      case BuiltinType::Short:
+        return "DartCSignedShort";
+      case BuiltinType::UShort:
+        return "DartCUnsignedShort";
+      case BuiltinType::Int:
+        return "DartCSignedInt";
+      case BuiltinType::UInt:
+        return "DartCUnsignedInt";
+      case BuiltinType::Long:
+      case BuiltinType::LongLong:
+        return "DartCSignedLong";
+      case BuiltinType::ULong:
+      case BuiltinType::ULongLong:
+        return "DartCUnsignedLong";
+      default:
+        BT->dump();
+        abort();
+    }
+  }
 
   bool VisitIntegerLiteral(IntegerLiteral *il) {
-    OS << "(new C__TYPE_Int64.literal(" << il->getValue() << "))";
+    OS << "(new " << DartCClassForCIntegerType(il->getType()) <<
+          ".fromInt(" << il->getValue() << "))";
     return true;
   }
 };
