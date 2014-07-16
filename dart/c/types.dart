@@ -247,6 +247,16 @@ abstract class DartCObject {
     return new DartCPointer.pointerTo(this);
   }
   /**
+
+/**
+ * Abstract class encapsulating all arithmetic types
+ * (things that are not structs, unions, or arrays).
+ */
+abstract class DartCArithmetic extends DartCObject {
+  DartCArithmetic(DartCMemory mem, int size, int offset) : super(mem, size,
+      offset);
+  DartCArithmetic.alloc(int size) : super.alloc(size);
+  /**
    * Abstract accessors.  Gets the value as one of the primitive C types.
    */
   DartCObject unsignedCharValue();
@@ -281,7 +291,7 @@ abstract class DartCObject {
  * integer types.  We do this by getting the value as a Dart integer and then
  * constructing the correct concrete subclass.
  */
-abstract class DartCInteger extends DartCObject {
+abstract class DartCInteger extends DartCArithmetic {
   DartCInteger(DartCMemory memory, int size, int offset) : super(memory, size,
       offset);
   DartCInteger.withSize(int size) : super.alloc(size);
@@ -347,7 +357,7 @@ abstract class DartCInteger extends DartCObject {
   DartCObject doubleValue() => new DartCDouble.fromNum(intValue());
 
 }
-abstract class DartCFloating extends DartCObject {
+abstract class DartCFloating extends DartCArithmetic {
   DartCFloating(DartCMemory memory, int size, int offset) : super(memory, size,
       offset);
   DartCFloating.withSize(int size) : super.alloc(size);
