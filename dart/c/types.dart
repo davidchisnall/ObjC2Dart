@@ -419,8 +419,8 @@ class DartCFloat extends DartCFloating {
   DartCFloat.fromNum(num n) : super.withSize(bytes) {
     setNumValue(n);
   }
-  DartCFloat.fromMemory(DartCMemory memory, int offset) : super(memory,
-      bits, offset);
+  DartCFloat.fromMemory(DartCMemory memory, int offset) : super(memory, bits,
+      offset);
   DartCFloat() : this.fromMemory(new DartCMemory.alloc(bits), 0);
   DartCFloating construct() => new DartCFloat();
 }
@@ -432,8 +432,8 @@ class DartCDouble extends DartCFloating {
   DartCDouble.fromNum(num n) : super.withSize(bytes) {
     setNumValue(n);
   }
-  DartCDouble.fromMemory(DartCMemory memory, int offset) : super(memory,
-      bits, offset);
+  DartCDouble.fromMemory(DartCMemory memory, int offset) : super(memory, bits,
+      offset);
   DartCDouble() : this.fromMemory(new DartCMemory.alloc(bits), 0);
   DartCFloating construct() => new DartCDouble();
 }
