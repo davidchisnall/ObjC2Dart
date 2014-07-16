@@ -336,9 +336,18 @@ abstract class DartCInteger extends DartCArithmetic {
     return i;
   }
 
-  bool operator <(DartCInteger other) => intValue() < other.intValue();
-  bool operator <=(DartCInteger other) => intValue() <= other.intValue();
-  bool operator >(DartCInteger other) => intValue() > other.intValue();
+  DartCArithmetic operator <(DartCInteger other) =>
+      new DartCSignedInt.fromInt((intValue() < other.intValue()) ? 1 : 0);
+  DartCArithmetic eq(DartCInteger other) =>
+      new DartCSignedInt.fromInt((intValue() == other.intValue()) ? 1 : 0);
+  DartCArithmetic ne(DartCInteger other) =>
+      new DartCSignedInt.fromInt((intValue() == other.intValue()) ? 1 : 0);
+  DartCArithmetic operator <=(DartCInteger other) =>
+      new DartCSignedInt.fromInt((intValue() <= other.intValue()) ? 1 : 0);
+  DartCArithmetic operator >(DartCInteger other) =>
+      new DartCSignedInt.fromInt((intValue() > other.intValue()) ? 1 : 0);
+  DartCArithmetic operator >=(DartCInteger other) =>
+      new DartCSignedInt.fromInt((intValue() >= other.intValue()) ? 1 : 0);
   DartCInteger operator +(DartCInteger other) => constructFromInt(intValue() +
       other.intValue());
   DartCInteger operator -(DartCInteger other) => constructFromInt(intValue() -
@@ -403,9 +412,18 @@ abstract class DartCFloating extends DartCArithmetic {
     return i;
   }
 
-  bool operator <(DartCFloating other) => numValue() < other.numValue();
-  bool operator <=(DartCFloating other) => numValue() <= other.numValue();
-  bool operator >(DartCFloating other) => numValue() > other.numValue();
+  DartCArithmetic operator <(DartCFloating other) =>
+      new DartCSignedInt.fromInt((numValue() < other.numValue()) ? 1 : 0);
+  DartCArithmetic eq(DartCFloating other) =>
+      new DartCSignedInt.fromInt((numValue() == other.numValue()) ? 1 : 0);
+  DartCArithmetic ne(DartCFloating other) =>
+      new DartCSignedInt.fromInt((numValue() == other.numValue()) ? 1 : 0);
+  DartCArithmetic operator <=(DartCFloating other) =>
+      new DartCSignedInt.fromInt((numValue() <= other.numValue()) ? 1 : 0);
+  DartCArithmetic operator >(DartCFloating other) =>
+      new DartCSignedInt.fromInt((numValue() > other.numValue()) ? 1 : 0);
+  DartCArithmetic operator >=(DartCFloating other) =>
+      new DartCSignedInt.fromInt((numValue() >= other.numValue()) ? 1 : 0);
   DartCFloating operator +(DartCFloating other) => constructFromNum(numValue() +
       other.numValue());
   DartCFloating operator -(DartCFloating other) => constructFromNum(numValue() -
