@@ -425,7 +425,41 @@ abstract class DartCFloating extends DartCArithmetic {
   DartCObject floatValue() => new DartCFloat.fromNum(numValue());
   DartCObject doubleValue() => new DartCDouble.fromNum(numValue());
 }
-
+/**
+ * Class encapsulating all structures, arrays and unions.  These types only
+ * support copying and constructing objects wrapping their fields.
+ */
+class DartCComposite extends DartCObject {
+  DartCComposite.fromMemory(DartCMemory mem, int size, int offset) :
+    super(mem, size, offset);
+  DartCComposite.alloc(int size) : super.alloc(size);
+  DartCObject unsignedCharAtOffset(int anOffset) =>
+      new DartCUnsignedChar.fromMemory(memory, offset + anOffset);
+  DartCObject signedCharAtOffset(int anOffset) =>
+      new DartCSignedChar.fromMemory(memory, offset + anOffset);
+  DartCObject unsignedShortAtOffset(int anOffset) =>
+      new DartCUnsignedShort.fromMemory(memory, offset + anOffset);
+  DartCObject signedShortAtOffset(int anOffset) =>
+      new DartCSignedShort.fromMemory(memory, offset + anOffset);
+  DartCObject unsignedIntAtOffset(int anOffset) =>
+      new DartCUnsignedInt.fromMemory(memory, offset + anOffset);
+  DartCObject signedIntAtOffset(int anOffset) =>
+      new DartCSignedInt.fromMemory(memory, offset + anOffset);
+  DartCObject unsignedLongAtOffset(int anOffset) =>
+      new DartCUnsignedLong.fromMemory(memory, offset + anOffset);
+  DartCObject signedLongAtOffset(int anOffset) =>
+      new DartCSignedLong.fromMemory(memory, offset + anOffset);
+  DartCObject floatAtOffset(int anOffset) =>
+      new DartCFloat.fromMemory(memory, offset + anOffset);
+  DartCObject doubleAtOffset(int anOffset) =>
+      new DartCDouble.fromMemory(memory, offset + anOffset);
+  DartCObject pointerAtOffset(int anOffset) =>
+      memory.getPointer(offset + anOffset);
+  DartCObject compositeAtOffset(int anOffset, int size) =>
+      new DartCComposite.fromMemory(memory, size, offset + anOffset);
+  DartCObject constructAtOffset(int anOffset) =>
+      new DartCComposite.fromMemory(memory, sizeof, offset + anOffset);
+}
 
 class DartCFloat extends DartCFloating {
   static final int bytes = 32;
