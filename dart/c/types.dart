@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-//import '../libc/string.dart';
 
 /**
  * Stores the object id -> C__Memory instance mapping.
