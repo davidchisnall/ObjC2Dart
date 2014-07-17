@@ -553,7 +553,7 @@ public:
         ret = TraverseStmt(E->getSubExpr());
         OS << ").pointerValue()";
         break;
-      case CK_ArrayToPointerDecay:
+      case CK_ArrayToPointerDecay: {
         QualType ElementTy =
           DstTy->getAs<PointerType>()->getPointeeType().getCanonicalType();
         OS << '(';
@@ -563,6 +563,15 @@ public:
           OS << DartCMethodForCBuiltin(BT) << "PointerCast()";
         // FIXME: Cast to the correct sized composite type!
         break;
+      }
+      case CK_ToUnion: {
+        TypeInfo TI = getTypeInfo(DstTy);
+        assert(TI.Size >= getTypeInfo(E->getSubExpr()->getType()).Size);
+        OS << "(new DartComposite.alloc(" << TI.Size << ").set(";
+        ret = TraverseStmt(E->getSubExpr());
+        OS << "))";
+        break;
+      }
     }
     return ret;
   }
