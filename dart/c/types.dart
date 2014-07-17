@@ -385,6 +385,7 @@ abstract class DartCInteger extends DartCArithmetic {
   DartCObject signedLongValue() => new DartCUnsignedLong.fromInt(intValue());
   DartCObject floatValue() => new DartCFloat.fromNum(intValue());
   DartCObject doubleValue() => new DartCDouble.fromNum(intValue());
+  DartCPointer pointerValue() => memory.getPointerFromInteger(offset, intValue());
 
 }
 abstract class DartCFloating extends DartCArithmetic {
