@@ -50,19 +50,21 @@ class DartCMemory {
 
   Map<int, DartCPointer> pointers;
 
-  /**
-   * Get a pointer value.  If no pointer was stored here, then try to calculate
-   * one from the data.
-   */
-  DartCPointer getPointer(int offset) {
+  DartCPointer getPointerFromInteger(int offset, int ptr) {
     DartCPointer ptr = pointers[offset];
     if (ptr != null) {
       return ptr;
     }
     // TODO: Pluggable policies for pointers that we're trying to reconstruct
     // from integers
-    return new DartCPointer.fromUInt64(getUInt64(offset));
+    return new DartCPointer.fromUInt64(ptr);
   }
+  /**
+   * Get a pointer value.  If no pointer was stored here, then try to calculate
+   * one from the data.
+   */
+  DartCPointer getPointer(int offset) => getPointerFromInteger(offset,
+      getUInt64(offset));
 
   /**
    * Fill in all pointer values that overlap the data that we're reading.
