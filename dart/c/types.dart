@@ -416,16 +416,16 @@ abstract class DartCFloating extends DartCArithmetic {
     return i;
   }
 
-  DartCArithmetic operator <(DartCFloating other) =>
-      new DartCSignedInt.fromInt((numValue() < other.numValue()) ? 1 : 0);
-  DartCArithmetic eq(DartCFloating other) =>
-      new DartCSignedInt.fromInt((numValue() == other.numValue()) ? 1 : 0);
-  DartCArithmetic ne(DartCFloating other) =>
-      new DartCSignedInt.fromInt((numValue() == other.numValue()) ? 1 : 0);
+  DartCArithmetic operator <(DartCFloating other) => new DartCSignedInt.fromInt(
+      (numValue() < other.numValue()) ? 1 : 0);
+  DartCArithmetic eq(DartCFloating other) => new DartCSignedInt.fromInt(
+      (numValue() == other.numValue()) ? 1 : 0);
+  DartCArithmetic ne(DartCFloating other) => new DartCSignedInt.fromInt(
+      (numValue() == other.numValue()) ? 1 : 0);
   DartCArithmetic operator <=(DartCFloating other) =>
       new DartCSignedInt.fromInt((numValue() <= other.numValue()) ? 1 : 0);
-  DartCArithmetic operator >(DartCFloating other) =>
-      new DartCSignedInt.fromInt((numValue() > other.numValue()) ? 1 : 0);
+  DartCArithmetic operator >(DartCFloating other) => new DartCSignedInt.fromInt(
+      (numValue() > other.numValue()) ? 1 : 0);
   DartCArithmetic operator >=(DartCFloating other) =>
       new DartCSignedInt.fromInt((numValue() >= other.numValue()) ? 1 : 0);
   DartCFloating operator +(DartCFloating other) => constructFromNum(numValue() +
@@ -434,8 +434,8 @@ abstract class DartCFloating extends DartCArithmetic {
       other.numValue());
   DartCFloating operator *(DartCFloating other) => constructFromNum(numValue() *
       other.numValue());
-  DartCFloating operator /(DartCFloating other) => constructFromNum(numValue()
-      / other.numValue());
+  DartCFloating operator /(DartCFloating other) => constructFromNum(numValue() /
+      other.numValue());
   DartCFloating inc() {
     setNumValue(numValue() + 1);
     return this;
@@ -464,8 +464,8 @@ abstract class DartCFloating extends DartCArithmetic {
  * support copying and constructing objects wrapping their fields.
  */
 class DartCComposite extends DartCObject {
-  DartCComposite.fromMemory(DartCMemory mem, int size, int offset) :
-    super(mem, size, offset);
+  DartCComposite.fromMemory(DartCMemory mem, int size, int offset) : super(mem,
+      size, offset);
   DartCComposite.alloc(int size) : super.alloc(size);
   DartCObject unsignedCharAtOffset(int anOffset) =>
       new DartCUnsignedChar.fromMemory(memory, offset + anOffset);
@@ -477,22 +477,22 @@ class DartCComposite extends DartCObject {
       new DartCSignedShort.fromMemory(memory, offset + anOffset);
   DartCObject unsignedIntAtOffset(int anOffset) =>
       new DartCUnsignedInt.fromMemory(memory, offset + anOffset);
-  DartCObject signedIntAtOffset(int anOffset) =>
-      new DartCSignedInt.fromMemory(memory, offset + anOffset);
+  DartCObject signedIntAtOffset(int anOffset) => new DartCSignedInt.fromMemory(
+      memory, offset + anOffset);
   DartCObject unsignedLongAtOffset(int anOffset) =>
       new DartCUnsignedLong.fromMemory(memory, offset + anOffset);
   DartCObject signedLongAtOffset(int anOffset) =>
       new DartCSignedLong.fromMemory(memory, offset + anOffset);
-  DartCObject floatAtOffset(int anOffset) =>
-      new DartCFloat.fromMemory(memory, offset + anOffset);
-  DartCObject doubleAtOffset(int anOffset) =>
-      new DartCDouble.fromMemory(memory, offset + anOffset);
-  DartCObject pointerAtOffset(int anOffset) =>
-      memory.getPointer(offset + anOffset);
+  DartCObject floatAtOffset(int anOffset) => new DartCFloat.fromMemory(memory,
+      offset + anOffset);
+  DartCObject doubleAtOffset(int anOffset) => new DartCDouble.fromMemory(memory,
+      offset + anOffset);
+  DartCObject pointerAtOffset(int anOffset) => memory.getPointer(offset +
+      anOffset);
   DartCObject compositeAtOffset(int anOffset, int size) =>
       new DartCComposite.fromMemory(memory, size, offset + anOffset);
-  DartCObject constructAtOffset(int anOffset) =>
-      new DartCComposite.fromMemory(memory, sizeof, offset + anOffset);
+  DartCObject constructAtOffset(int anOffset) => new DartCComposite.fromMemory(
+      memory, sizeof, offset + anOffset);
 }
 
 class DartCFloat extends DartCFloating {
@@ -507,8 +507,8 @@ class DartCFloat extends DartCFloating {
       offset);
   DartCFloat() : this.fromMemory(new DartCMemory.alloc(bits), 0);
   DartCFloating construct() => new DartCFloat();
-  DartCObject constructAtOffset(int anOffset) =>
-      new DartCFloat.fromMemory(memory, offset + anOffset);
+  DartCObject constructAtOffset(int anOffset) => new DartCFloat.fromMemory(
+      memory, offset + anOffset);
 }
 class DartCDouble extends DartCFloating {
   static final int bytes = 32;
@@ -522,8 +522,8 @@ class DartCDouble extends DartCFloating {
       offset);
   DartCDouble() : this.fromMemory(new DartCMemory.alloc(bits), 0);
   DartCFloating construct() => new DartCDouble();
-  DartCObject constructAtOffset(int anOffset) =>
-      new DartCDouble.fromMemory(memory, offset + anOffset);
+  DartCObject constructAtOffset(int anOffset) => new DartCDouble.fromMemory(
+      memory, offset + anOffset);
 }
 
 
@@ -539,8 +539,8 @@ class DartCSignedChar extends DartCInteger {
       bits, offset);
   DartCSignedChar() : this.fromMemory(new DartCMemory.alloc(bits), 0);
   DartCInteger construct() => new DartCSignedChar();
-  DartCObject constructAtOffset(int anOffset) =>
-      new DartCSignedChar.fromMemory(memory, offset + anOffset);
+  DartCObject constructAtOffset(int anOffset) => new DartCSignedChar.fromMemory(
+      memory, offset + anOffset);
 }
 class DartCUnsignedChar extends DartCInteger {
   static final int bytes = 1;
@@ -599,8 +599,8 @@ class DartCSignedInt extends DartCInteger {
       bits, offset);
   DartCSignedInt() : this.fromMemory(new DartCMemory.alloc(bits), 0);
   DartCInteger construct() => new DartCSignedInt();
-  DartCObject constructAtOffset(int anOffset) =>
-      new DartCSignedInt.fromMemory(memory, offset + anOffset);
+  DartCObject constructAtOffset(int anOffset) => new DartCSignedInt.fromMemory(
+      memory, offset + anOffset);
 }
 class DartCUnsignedInt extends DartCInteger {
   static final int bytes = 4;
@@ -629,8 +629,8 @@ class DartCSignedLong extends DartCInteger {
       bits, offset);
   DartCSignedLong() : this.fromMemory(new DartCMemory.alloc(bits), 0);
   DartCInteger construct() => new DartCSignedLong();
-  DartCObject constructAtOffset(int anOffset) =>
-      new DartCSignedLong.fromMemory(memory, offset + anOffset);
+  DartCObject constructAtOffset(int anOffset) => new DartCSignedLong.fromMemory(
+      memory, offset + anOffset);
 }
 class DartCUnsignedLong extends DartCInteger {
   static final int bytes = 8;
@@ -747,6 +747,6 @@ class DartCPointer extends DartCObject {
   DartCObject floatValue() => new DartCFloat.fromNum(intValue());
   DartCObject doubleValue() => new DartCDouble.fromNum(intValue());
 
-  DartCObject constructAtOffset(int anOffset) =>
-      memory.getPointer(offset + anOffset);
+  DartCObject constructAtOffset(int anOffset) => memory.getPointer(offset +
+      anOffset);
 }
