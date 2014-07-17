@@ -64,6 +64,80 @@ class DartWriter : public RecursiveASTVisitor<DartWriter> {
   IndentedOutputStream OS;
   CerrOutputStream cerr;
 
+  const char *DartCClassForCBuiltin(QualType Ty) {
+    Ty = Ty.getCanonicalType();
+    const BuiltinType *BT = cast<BuiltinType>(Ty.getTypePtr());
+    return DartCClassForCBuiltin(BT);
+  }
+  const char *DartCClassForCBuiltin(const BuiltinType *BT) {
+    switch (BT->getKind()) {
+      case BuiltinType::Bool:
+      case BuiltinType::Char_U:
+      case BuiltinType::UChar:
+        return "DartCUnsignedChar";
+      case BuiltinType::SChar:
+      case BuiltinType::Char_S:
+        return "DartCSignedChar";
+      case BuiltinType::Short:
+        return "DartCSignedShort";
+      case BuiltinType::UShort:
+        return "DartCUnsignedShort";
+      case BuiltinType::Int:
+        return "DartCSignedInt";
+      case BuiltinType::UInt:
+        return "DartCUnsignedInt";
+      case BuiltinType::Long:
+      case BuiltinType::LongLong:
+        return "DartCSignedLong";
+      case BuiltinType::ULong:
+      case BuiltinType::ULongLong:
+        return "DartCUnsignedLong";
+      case BuiltinType::Float:
+        return "DartCFloat";
+      case BuiltinType::Double:
+        return "DartCDouble";
+      default:
+        BT->dump();
+        abort();
+    }
+  }
+  const char *DartCMethodForCBuiltin(QualType Ty) {
+    Ty = Ty.getCanonicalType();
+    const BuiltinType *BT = cast<BuiltinType>(Ty.getTypePtr());
+    return DartCMethodForCBuiltin(BT);
+  }
+  const char *DartCMethodForCBuiltin(const BuiltinType *BT) {
+    switch (BT->getKind()) {
+      case BuiltinType::Bool:
+      case BuiltinType::Char_U:
+      case BuiltinType::UChar:
+        return "unsignedChar";
+      case BuiltinType::SChar:
+      case BuiltinType::Char_S:
+        return "signedChar";
+      case BuiltinType::Short:
+        return "signedShort";
+      case BuiltinType::UShort:
+        return "unsignedShort";
+      case BuiltinType::Int:
+        return "signedInt";
+      case BuiltinType::UInt:
+        return "unsignedInt";
+      case BuiltinType::Long:
+      case BuiltinType::LongLong:
+        return "signedLong";
+      case BuiltinType::ULong:
+      case BuiltinType::ULongLong:
+        return "unsignedLong";
+      case BuiltinType::Float:
+        return "float";
+      case BuiltinType::Double:
+        return "double";
+      default:
+        BT->dump();
+        abort();
+    }
+  }
 public:
   DartWriter() : RecursiveASTVisitor<DartWriter>(), OS(), cerr() {
     EmitDefaultImports();
@@ -254,6 +328,8 @@ public:
       return TraverseBinaryOperator(BO);
     else if (UnaryOperator *UO = dyn_cast<UnaryOperator>(s))
       return TraverseUnaryOperator(UO);
+    else if (CastExpr *CE = dyn_cast<CastExpr>(s))
+      return TraverseCastExpr(CE);
     return RecursiveASTVisitor::TraverseStmt(s);
   }
 
@@ -376,6 +452,48 @@ public:
     return true;
   }
 
+  bool TraverseCastExpr(CastExpr *E) {
+    // We treat c-style casts, implicit casts, and so on as equivalent
+    // We ignore the type of the C cast and only concern ourselves with whether
+    // it involves something requiring explicit coercion in Dart.
+    QualType SrcTy = E->getSubExpr()->getType();
+    QualType DstTy = E->getType();
+    bool ret = false;
+    switch (E->getCastKind()) {
+      default:
+        llvm::errs() << "Unhandled cast kind: " << E->getCastKindName() << '\n';
+        break;
+      case CK_LValueToRValue:
+      case CK_NoOp:
+        return TraverseStmt(E->getSubExpr());
+      // Cast types that produce arithmetic types
+      case CK_IntegralCast:
+      case CK_FloatingToIntegral:
+      case CK_IntegralToFloating:
+      case CK_PointerToIntegral:
+      case CK_FloatingCast:
+        OS << '(';
+        ret = TraverseStmt(E->getSubExpr());
+        OS << ")." << DartCMethodForCBuiltin(DstTy) << "Value()";
+        break;
+      case CK_IntegralToPointer:
+        OS << '(';
+        ret = TraverseStmt(E->getSubExpr());
+        OS << ").pointerValue()";
+        break;
+      case CK_ArrayToPointerDecay:
+        QualType ElementTy =
+          DstTy->getAs<PointerType>()->getPointeeType().getCanonicalType();
+        OS << '(';
+        ret = TraverseStmt(E->getSubExpr());
+        OS << ").addressOf().";
+        if (const BuiltinType *BT = dyn_cast<BuiltinType>(ElementTy))
+          OS << DartCMethodForCBuiltin(BT) << "PointerCast()";
+        // FIXME: Cast to the correct sized composite type!
+        break;
+    }
+    return ret;
+  }
 
   bool emitSimpleBinOp(Expr *LHS, Expr *RHS, const char *OpStr, bool Assign) {
     bool ret;
@@ -523,13 +641,9 @@ public:
   }
 
   bool TraverseBuiltinType(BuiltinType *t) {
-    if (t->isVoidType()) {
+    if (t->isVoidType())
       OS << "void";
-    } else if (t->isIntegerType()) {
-      OS << DartCClassForCIntegerType(t);
-    } else {
-      return false;
-    }
+    OS << DartCClassForCBuiltin(t);
     return true;
   }
 
@@ -578,44 +692,9 @@ public:
   }
 
 #pragma mark Literals
-  const char *DartCClassForCIntegerType(QualType Ty) {
-    Ty = Ty.getCanonicalType();
-    assert(Ty->isIntegerType());
-    const BuiltinType *BT = dyn_cast<BuiltinType>(Ty.getTypePtr());
-    assert(BT && "Found non-builtin integer type!");
-    return DartCClassForCIntegerType(BT);
-  }
-  const char *DartCClassForCIntegerType(const BuiltinType *BT) {
-    switch (BT->getKind()) {
-      case BuiltinType::Bool:
-      case BuiltinType::Char_U:
-      case BuiltinType::UChar:
-        return "DartCUnsignedChar";
-      case BuiltinType::SChar:
-      case BuiltinType::Char_S:
-        return "DartCSignedChar";
-      case BuiltinType::Short:
-        return "DartCSignedShort";
-      case BuiltinType::UShort:
-        return "DartCUnsignedShort";
-      case BuiltinType::Int:
-        return "DartCSignedInt";
-      case BuiltinType::UInt:
-        return "DartCUnsignedInt";
-      case BuiltinType::Long:
-      case BuiltinType::LongLong:
-        return "DartCSignedLong";
-      case BuiltinType::ULong:
-      case BuiltinType::ULongLong:
-        return "DartCUnsignedLong";
-      default:
-        BT->dump();
-        abort();
-    }
-  }
 
   bool VisitIntegerLiteral(IntegerLiteral *il) {
-    OS << "(new " << DartCClassForCIntegerType(il->getType()) <<
+    OS << "(new " << DartCClassForCBuiltin(il->getType()) <<
           ".fromInt(" << il->getValue() << "))";
     return true;
   }
