@@ -140,6 +140,58 @@ class DartWriter : public RecursiveASTVisitor<DartWriter> {
         abort();
     }
   }
+  size_t SizeForCBuiltin(const BuiltinType *BT) {
+    switch (BT->getKind()) {
+      case BuiltinType::Bool:
+      case BuiltinType::Char_U:
+      case BuiltinType::UChar:
+      case BuiltinType::SChar:
+      case BuiltinType::Char_S:
+        return 1;
+      case BuiltinType::Short:
+      case BuiltinType::UShort:
+        return 2;
+      case BuiltinType::Int:
+      case BuiltinType::UInt:
+      case BuiltinType::Float:
+        return 4;
+      case BuiltinType::Long:
+      case BuiltinType::LongLong:
+      case BuiltinType::ULong:
+      case BuiltinType::ULongLong:
+      case BuiltinType::Double:
+        return 8;
+      default:
+        BT->dump();
+        abort();
+    }
+  }
+  struct TypeInfo
+  {
+    const char *DartCClass;
+    const char *DartCMethod;
+    int Size;
+    bool IsBuiltin;
+  };
+  TypeInfo getTypeInfo(QualType Ty) {
+    Ty = Ty.getCanonicalType();
+    TypeInfo TI;
+    if (const BuiltinType *BT = dyn_cast<BuiltinType>(Ty)) {
+      TI.DartCClass = DartCClassForCBuiltin(BT);
+      TI.DartCMethod = DartCMethodForCBuiltin(BT);
+      TI.Size = SizeForCBuiltin(BT);
+      TI.IsBuiltin = true;
+    } else {
+      assert(Ty->isRecordType());
+      TI.DartCClass = "DartCComposite";
+      TI.DartCMethod = "composite";
+      const RecordDecl *RD = Ty->getAs<RecordType>()->getDecl();
+      const ASTRecordLayout &RL = C.getASTRecordLayout(RD);
+      TI.Size = RL.getSize().getQuantity();
+      TI.IsBuiltin = false;
+    }
+    return TI;
+  }
   ASTContext &C;
 public:
   DartWriter(ASTContext &ctx) :
@@ -227,15 +279,11 @@ public:
     const ASTRecordLayout &RL = C.getASTRecordLayout(RD);
     int64_t Offset = RL.getFieldOffset(Field->getFieldIndex()) / 8;
     QualType FieldTy = E->getType().getCanonicalType();
-    if (const BuiltinType *BT = dyn_cast<BuiltinType>(FieldTy))
-      OS << DartCMethodForCBuiltin(BT) << "AtOffset(" << Offset << ')';
-    else {
-      assert(FieldTy->isRecordType());
-      const RecordDecl *FieldRD =
-        FieldTy.getCanonicalType()->getAs<RecordType>()->getDecl();
-      const ASTRecordLayout &FieldRL = C.getASTRecordLayout(FieldRD);
-      OS << "compositeAtOffset(" << Offset << ", " << FieldRL.getSize().getQuantity() << ')';
-    }
+    TypeInfo FieldInfo = getTypeInfo(FieldTy);
+    OS << FieldInfo.DartCMethod << "AtOffset(" << Offset;
+    if (!FieldInfo.IsBuiltin)
+      OS << ", " << FieldInfo.Size;
+    OS << ')';
     return ret;
   }
 
