@@ -631,12 +631,12 @@ public:
   }
 
   bool TraverseArrayType(ArrayType *t) {
-    OS << "C__TYPE_Pointer";
+    OS << "DartCComposite";
     return true;
   }
 
   bool TraversePointerType(PointerType *t) {
-    OS << "C__TYPE_Pointer";
+    OS << "DartCPointer";
     return true;
   }
 
