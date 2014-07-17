@@ -452,13 +452,13 @@ public:
       if (!TraverseStmt(o->getSubExpr())) {
         return false;
       }
-      OS << ".pointee";
+      OS << ".dereference()";
       return true;
     } else if (o->getOpcodeStr(o->getOpcode()).compare("&") == 0) {
       if (!TraverseStmt(o->getSubExpr())) {
         return false;
       }
-      OS << ".pointer()";
+      OS << ".addressOf()";
       return true;
     } else if (o->getOpcodeStr(o->getOpcode()).compare("++") == 0) {
       if (!TraverseStmt(o->getSubExpr())) {
