@@ -527,7 +527,6 @@ public:
     // We treat c-style casts, implicit casts, and so on as equivalent
     // We ignore the type of the C cast and only concern ourselves with whether
     // it involves something requiring explicit coercion in Dart.
-    QualType SrcTy = E->getSubExpr()->getType();
     QualType DstTy = E->getType();
     bool ret = false;
     switch (E->getCastKind()) {
