@@ -266,6 +266,11 @@ abstract class DartCObject {
    * `constructAtOffset(4)` on the object encapsulating `a[0]` will give `a[1]`.
    */
   DartCObject constructAtOffset(int anOffset);
+  /**
+   * Returns a copy of this object.  Calls and returns in C are by value and so
+   * will call this method do duplicate the underlying object.
+   */
+  DartCObject copy();
 }
 
 /**
@@ -329,6 +334,11 @@ abstract class DartCInteger extends DartCArithmetic {
    * Construct an instance of the subclass
    */
   DartCInteger construct();
+  DartCObject copy() {
+    DartCInteger cpy = construct();
+    cpy.setIntValue(intValue());
+    return cpy;
+  }
   /**
    * Constructs a new instance of this class from the Dart integer.
    */
@@ -407,6 +417,12 @@ abstract class DartCFloating extends DartCArithmetic {
    * Construct an instance of the subclass
    */
   DartCFloating construct();
+  DartCObject copy() {
+    DartCFloating cpy = construct();
+    cpy.setNumValue(numValue());
+    return cpy;
+  }
+
   /**
    * Constructs a new instance of this class from the Dart integer.
    */
@@ -493,6 +509,12 @@ class DartCComposite extends DartCObject {
       new DartCComposite.fromMemory(memory, size, offset + anOffset);
   DartCObject constructAtOffset(int anOffset) => new DartCComposite.fromMemory(
       memory, sizeof, offset + anOffset);
+  DartCObject copy() {
+    DartCComposite cpy = new DartCComposite.alloc(sizeof);
+    cpy.set(this);
+    return cpy;
+  }
+
 }
 
 class DartCFloat extends DartCFloating {
