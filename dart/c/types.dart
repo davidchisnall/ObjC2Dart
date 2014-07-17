@@ -372,6 +372,7 @@ abstract class DartCInteger extends DartCArithmetic {
       other.intValue());
   /**
    * Type cast operators.
+   * FIXME: These don't propagate pointers, but should!
    */
   DartCObject unsignedCharValue() => new DartCUnsignedChar.fromInt(intValue());
   DartCObject signedCharValue() => new DartCSignedChar.fromInt(intValue());
