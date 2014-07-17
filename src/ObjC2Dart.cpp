@@ -505,7 +505,9 @@ public:
     for (CallExpr::arg_iterator it = e->arg_begin(), end = e->arg_end();
          it != end; ++it) {
       NonVariadicArgs--;
+      OS << '(';
       ret &= TraverseStmt(*it);
+      OS << ").copy()";
       if (it + 1 != end) {
         OS << ", ";
         if (NonVariadicArgs == 0)
@@ -777,8 +779,9 @@ public:
 #pragma mark Return
 
   bool TraverseReturnStmt(ReturnStmt *s) {
-    OS << "return ";
+    OS << "return (";
     bool ret = TraverseStmt(s->getRetValue());
+    OS << ").copy()";
     return ret;
   }
 
