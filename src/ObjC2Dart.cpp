@@ -15,6 +15,7 @@
 #include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/AST/RecordLayout.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "llvm/Support/raw_ostream.h"
@@ -206,6 +207,36 @@ public:
     }
     currentFunctionDecl = savedCurrentFunctionDecl;
     return true;
+  }
+
+  bool TraverseMemberExpr(MemberExpr *E) {
+    Expr *Base = E->getBase();
+    OS << '(';
+    bool ret = TraverseStmt(Base);
+    OS << ").";
+    const RecordDecl *RD;
+    if (E->isArrow()) {
+      OS << "dereference().";
+      QualType RecordTy =
+        Base->getType()->getAs<PointerType>()->getPointeeType();
+      RD = RecordTy.getCanonicalType()->getAs<RecordType>()->getDecl();
+    } else {
+      RD = Base->getType().getCanonicalType()->getAs<RecordType>()->getDecl();
+    }
+    FieldDecl *Field = cast<FieldDecl>(E->getMemberDecl());
+    const ASTRecordLayout &RL = C.getASTRecordLayout(RD);
+    int64_t Offset = RL.getFieldOffset(Field->getFieldIndex()) / 8;
+    QualType FieldTy = E->getType().getCanonicalType();
+    if (const BuiltinType *BT = dyn_cast<BuiltinType>(FieldTy))
+      OS << DartCMethodForCBuiltin(BT) << "AtOffset(" << Offset << ')';
+    else {
+      assert(FieldTy->isRecordType());
+      const RecordDecl *FieldRD =
+        FieldTy.getCanonicalType()->getAs<RecordType>()->getDecl();
+      const ASTRecordLayout &FieldRL = C.getASTRecordLayout(FieldRD);
+      OS << "compositeAtOffset(" << Offset << ", " << FieldRL.getSize().getQuantity() << ')';
+    }
+    return ret;
   }
 
   bool TraverseParmVarDecl(ParmVarDecl *d) {
@@ -622,6 +653,11 @@ public:
 
   bool TraverseIncompleteArrayType(ArrayType *t) {
     return TraverseArrayType(t);
+  }
+
+  bool TraverseRecordType(RecordType *T) {
+    OS << "DartCComposite";
+    return true;
   }
 
   bool TraverseArrayType(ArrayType *t) {
