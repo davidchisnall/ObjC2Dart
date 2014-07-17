@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "clang/Basic/Builtins.h"
 #include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -138,8 +139,10 @@ class DartWriter : public RecursiveASTVisitor<DartWriter> {
         abort();
     }
   }
+  ASTContext &C;
 public:
-  DartWriter() : RecursiveASTVisitor<DartWriter>(), OS(), cerr() {
+  DartWriter(ASTContext &ctx) :
+    RecursiveASTVisitor<DartWriter>(), OS(), cerr(), C(ctx) {
     EmitDefaultImports();
   }
 
@@ -176,22 +179,6 @@ public:
     if (d->isMain()) {
       OS << "void main() {\n";
       OS.increaseIndentationLevel().indent();
-    } else if (d->isVariadic()) {
-      OS << "class C__VARARGS_FUNCTION_" << d->getNameAsString() <<
-          " extends C__VARARGS_FUNCTION {\n";
-      OS.increaseIndentationLevel().indent();
-      OS << "dynamic body(List arguments) {\n";
-      OS.increaseIndentationLevel().indent();
-      int argn = 0;
-      for (FunctionDecl::param_iterator it = d->param_begin(),
-           end = d->param_end(); it != end; ++it) {
-        if (!TraverseDecl(*it)) {
-          return false;
-        }
-        OS << " = arguments[" << argn << "];\n";
-        ++argn;
-        OS.indent();
-      }
     } else {
       TraverseType(d->getReturnType());
       OS << " " << d->getNameAsString() << "(";
@@ -205,6 +192,8 @@ public:
           OS << ", ";
         }
       }
+      if (d->isVariadic())
+        OS << ", List __variadic_arguments";
       OS << ") ";
     }
     if (!TraverseStmt(d->getBody())) {
@@ -213,14 +202,6 @@ public:
     if (d->isMain()) {
       OS << d->getNameAsString() << "();\n";
       OS.decreaseIndentationLevel().indent() << "}\n";
-      OS.indent();
-    } else if (d->isVariadic()) {
-      OS << "}\n";
-      OS.decreaseIndentationLevel().indent();
-      OS << "}\n";
-      OS.decreaseIndentationLevel().indent();
-      OS << "Object " << d->getNameAsString() << " = new C__VARARGS_FUNCTION_" << d->getNameAsString()
-          << "();\n";
       OS.indent();
     }
     currentFunctionDecl = savedCurrentFunctionDecl;
@@ -354,12 +335,20 @@ public:
     if (!TraverseStmt(s->getCond())) {
       return false;
     }
-    OS << ") ";
+    OS << ") {\n";
+    OS.increaseIndentationLevel().indent();
     if (!TraverseStmt(s->getThen())) {
       return false;
     }
-    OS << " else ";
-    return TraverseStmt(s->getElse());
+    OS << ";\n";
+    OS.decreaseIndentationLevel().indent();
+    OS << "} else {\n";
+    OS.increaseIndentationLevel().indent();
+    bool ret =  TraverseStmt(s->getElse());
+    OS << ";\n";
+    OS.decreaseIndentationLevel().indent();
+    OS << "}\n";
+    return ret;
   }
 
   bool TraverseDoStmt(DoStmt *s) {
@@ -394,61 +383,64 @@ public:
 
 #pragma mark Expressions
 
-  bool check_va_start_on = false;
-  bool check_va_start_return = false;
-  std::string check_va_start_argname;
+  bool TraverseVAArgExpr(VAArgExpr *E) {
+    OS << "__builtin_va_arg(";
+    bool ret = TraverseStmt(E->getSubExpr()->IgnoreParenCasts());
+    OS << ')';
+    return ret;
+  }
 
   bool TraverseCallExpr(CallExpr *e) {
-    if (!TraverseStmt(e->getCallee())) {
+    if (int BI = e->getBuiltinCallee()) {
+      if (BI == Builtin::BI__builtin_va_start) {
+        OS << "__builtin_va_start(";
+        int ret = TraverseStmt(e->getArg(0)->IgnoreParenCasts());
+        OS << ", __variadic_arguments)";
+        return ret;
+      }
+      if (BI == Builtin::BI__builtin_va_copy) {
+        OS << "__builtin_va_copy(";
+        int ret = TraverseStmt(e->getArg(0)->IgnoreParenCasts());
+        OS << ", ";
+        ret &= TraverseStmt(e->getArg(1)->IgnoreParenCasts());
+        OS << ')';
+        return ret;
+      }
+      // No cleanup needed for va_lists
+      if (BI == Builtin::BI__builtin_va_end) {
+        OS << "/* va_end */";
+        return true;
+      }
+      e->dump();
       return false;
     }
-    check_va_start_on = true;
-    check_va_start_return = false;
-    TraverseStmt(e->getCallee());
-    check_va_start_on = false;
+    bool ret = TraverseStmt(e->getCallee());
+    const FunctionProtoType *FT =
+      e->getCallee()->IgnoreParenCasts()->getType()->getAs<FunctionProtoType>();
+    int NonVariadicArgs = INT_MAX;
+    if (!FT)
+      NonVariadicArgs = 0;
+    else if (FT->isVariadic())
+      NonVariadicArgs = FT->getNumParams();
     OS << "(";
-    if (!check_va_start_return) {
-      for (CallExpr::arg_iterator it = e->arg_begin(), end = e->arg_end();
-           it != end; ++it) {
-        if (!TraverseStmt(*it)) {
-          return false;
-        }
-        if (it + 1 != end) {
-          OS << ", ";
-        }
-      }
-    } else {
-      if (!TraverseStmt(*(e->arg_begin()))) {
-        return false;
-      }
-      OS << ", ";
-      check_va_start_on = true;
-      TraverseStmt(*(e->arg_begin() + 1));
-      check_va_start_on = false;
-      int argn = 0;
-      for (FunctionDecl::param_iterator it = currentFunctionDecl->param_begin(),
-           end = currentFunctionDecl->param_end(); it != end; ++it) {
-        VarDecl *d = static_cast<VarDecl *>(*it);
-        if ((d->getNameAsString()).compare(check_va_start_argname) == 0) {
-          OS << argn + 1 << ", arguments";
-          break;
-        }
-        ++argn;
+    for (CallExpr::arg_iterator it = e->arg_begin(), end = e->arg_end();
+         it != end; ++it) {
+      NonVariadicArgs--;
+      ret &= TraverseStmt(*it);
+      if (it + 1 != end) {
+        OS << ", ";
+        if (NonVariadicArgs == 0)
+          OS << "[ ";
       }
     }
+    if (NonVariadicArgs <= 0)
+      OS << " ]";
     OS << ")";
-    return true;
+    return ret;
   }
 
   bool TraverseDeclRefExpr(DeclRefExpr *e) {
-    if (check_va_start_on) {
-      check_va_start_argname = e->getDecl()->getNameAsString();
-      if (check_va_start_argname.compare("va_start") == 0) {
-        check_va_start_return = true;
-      }
-    } else {
-      OS << e->getDecl()->getNameAsString();
-    }
+    OS << e->getDecl()->getNameAsString();
     return true;
   }
 
@@ -465,6 +457,8 @@ public:
         break;
       case CK_LValueToRValue:
       case CK_NoOp:
+        // This isn't quite right, we should be stripping out this cast in the CallExpr
+      case CK_FunctionToPointerDecay:
         return TraverseStmt(E->getSubExpr());
       // Cast types that produce arithmetic types
       case CK_IntegralCast:
@@ -591,9 +585,9 @@ public:
   }
 
   bool TraverseUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *e) {
-    // Everything is 64 bits.
-    OS << "(new C__TYPE_Int64.literal(8))";
-    return true;
+    e->dump();
+    abort();
+    return false;
   }
 
   bool TraverseArraySubscriptExpr(ArraySubscriptExpr *e) {
@@ -631,7 +625,11 @@ public:
   }
 
   bool TraverseArrayType(ArrayType *t) {
-    OS << "DartCComposite";
+    // Note: This only works for the x86-64 definition of va_args
+    if (t->getElementType().getCanonicalType() == C.getVaListTagType())
+      OS << "va_list";
+    else 
+      OS << "DartCComposite";
     return true;
   }
 
@@ -688,7 +686,8 @@ public:
 
   bool TraverseReturnStmt(ReturnStmt *s) {
     OS << "return ";
-    return TraverseStmt(s->getRetValue());
+    bool ret = TraverseStmt(s->getRetValue());
+    return ret;
   }
 
 #pragma mark Literals
@@ -703,7 +702,7 @@ public:
 class DartWriterConsumer : public ASTConsumer {
 public:
   virtual void HandleTranslationUnit(ASTContext &ctx) {
-    DartWriter dartWriter;
+    DartWriter dartWriter(ctx);
     dartWriter.TraverseDecl(ctx.getTranslationUnitDecl());
   }
 };
