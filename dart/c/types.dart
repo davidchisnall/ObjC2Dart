@@ -338,18 +338,18 @@ abstract class DartCInteger extends DartCArithmetic {
     return i;
   }
 
-  DartCArithmetic operator <(DartCInteger other) =>
-      new DartCSignedInt.fromInt((intValue() < other.intValue()) ? 1 : 0);
-  DartCArithmetic eq(DartCInteger other) =>
-      new DartCSignedInt.fromInt((intValue() == other.intValue()) ? 1 : 0);
-  DartCArithmetic ne(DartCInteger other) =>
-      new DartCSignedInt.fromInt((intValue() == other.intValue()) ? 1 : 0);
-  DartCArithmetic operator <=(DartCInteger other) =>
-      new DartCSignedInt.fromInt((intValue() <= other.intValue()) ? 1 : 0);
-  DartCArithmetic operator >(DartCInteger other) =>
-      new DartCSignedInt.fromInt((intValue() > other.intValue()) ? 1 : 0);
-  DartCArithmetic operator >=(DartCInteger other) =>
-      new DartCSignedInt.fromInt((intValue() >= other.intValue()) ? 1 : 0);
+  DartCArithmetic operator <(DartCInteger other) => new DartCSignedInt.fromInt(
+      (intValue() < other.intValue()) ? 1 : 0);
+  DartCArithmetic eq(DartCInteger other) => new DartCSignedInt.fromInt(
+      (intValue() == other.intValue()) ? 1 : 0);
+  DartCArithmetic ne(DartCInteger other) => new DartCSignedInt.fromInt(
+      (intValue() == other.intValue()) ? 1 : 0);
+  DartCArithmetic operator <=(DartCInteger other) => new DartCSignedInt.fromInt(
+      (intValue() <= other.intValue()) ? 1 : 0);
+  DartCArithmetic operator >(DartCInteger other) => new DartCSignedInt.fromInt(
+      (intValue() > other.intValue()) ? 1 : 0);
+  DartCArithmetic operator >=(DartCInteger other) => new DartCSignedInt.fromInt(
+      (intValue() >= other.intValue()) ? 1 : 0);
   DartCInteger operator +(DartCInteger other) => constructFromInt(intValue() +
       other.intValue());
   DartCInteger operator -(DartCInteger other) => constructFromInt(intValue() -
