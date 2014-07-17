@@ -42,7 +42,7 @@ class DartCMemory {
    * memory map entry, ensuring that it is not possible to construct a pointer
    * to this object from an integer.
    */
-  void free(){
+  void free() {
     if (_baseAddress != 0) {
       dartCMemoryMap[_baseAddress] = null;
     }
