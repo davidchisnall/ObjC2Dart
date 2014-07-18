@@ -1,4 +1,5 @@
-import '../c/types.dart';
+part of DartCLibC;
+
 
 /**
  * Copies |num| bytes of memory from |source| to |destination|.

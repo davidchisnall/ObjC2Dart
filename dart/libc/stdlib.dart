@@ -1,5 +1,4 @@
-import '../c/types.dart';
-
+part of DartCLibC;
 
 /**
  * C declaration: void * malloc (size_t size);

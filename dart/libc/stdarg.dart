@@ -1,3 +1,4 @@
+part of DartCLibC;
 
 class va_list {
   List arguments;

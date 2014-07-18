@@ -1,3 +1,5 @@
+library DartCRT;
+
 import 'dart:typed_data';
 
 
@@ -198,6 +200,7 @@ class DartCMemory {
   DartCMemory.alloc(this._bytes) {
     // Allocate the memory.
     Uint8List mem = new Uint8List(_bytes);
+    pointers = new Map();
     _data = new ByteData.view(mem.buffer);
   }
 
