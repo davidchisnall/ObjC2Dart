@@ -29,7 +29,7 @@ class DartCMemory {
   int get baseAddress {
     if (_baseAddress == 0) {
       // Set the object ID in the address.
-      _baseAddress = _objectID++;
+      _baseAddress = ++_objectID;
       // For now, we don't support allocating more than 2^32 objects over the
       // lifetime of a program.
       assert(_baseAddress < 0xffffffff);
@@ -51,6 +51,10 @@ class DartCMemory {
   }
 
   Map<int, DartCPointer> pointers;
+
+  void setPointer(int offset, DartCPointer ptr) {
+    pointers[offset] = ptr;
+  }
 
   DartCPointer getPointerFromInteger(int offset, int ptr) {
     DartCPointer ptr = pointers[offset];
@@ -692,7 +696,7 @@ class DartCPointer extends DartCObject {
   /**
    * The offset of this pointer.
    */
-  int pointerOffset;
+  int pointerOffset = 0;
   /**
    */
   DartCObject _currentObject;
@@ -715,27 +719,62 @@ class DartCPointer extends DartCObject {
    */
   int intValue() {
     if (_currentObject == null) {
-      return pointerOffset;
+      dereference();
+    }
+    if (_currentObject == null) {
+      return 0;
     }
     // This will implicitly insert the base memory in the object map,
     // if required.
-    return (_currentObject.memory.baseAddress << 32) + pointerOffset;
+    return _currentObject.address + pointerOffset;
   }
 
   /**
    * Initialises a new pointer pointing to a specific object.
    */
   DartCPointer.pointerTo(DartCObject this.baseObject)
-      : super.alloc(8);
+      : super.alloc(8) {
+    memory.setPointer(0, this);
+  }
 
-  DartCPointer.fromUInt64(int intVal) : super.alloc(8) {
-    offset = intVal.toUnsigned(32);
+  factory DartCPointer.fromMemory(DartCMemory memory, int offset)  {
+    DartCPointer ptr = memory.getPointer(offset);
+    if (ptr != null) {
+      return ptr;
+    }
+    return new DartCPointer.fromUInt64(memory.getUInt64(offset));
+  }
+
+  void setFromInt(int intVal) {
+    int pointerOffset = intVal.toUnsigned(32);
     DartCMemory mem = dartCMemoryMap[intVal >> 32];
     // Pointers constructed from integers are char*.  The compiler is
     // responsible for then casting them to the correct type.
     if (mem != null) {
-      baseObject = new DartCUnsignedChar.fromMemory(mem, offset);
+      baseObject = new DartCUnsignedChar.fromMemory(mem, pointerOffset);
+      pointerOffset = 0;
     }
+    memory.setPointer(offset, this);
+  }
+
+  DartCPointer set(DartCObject newValue) {
+    // Make sure that we're copying from an object that is the same size.
+    assert(sizeof == newValue.sizeof);
+    DartCPointer other = newValue.memory.getPointer(newValue.offset);
+    if (other != null) {
+      baseObject = other.baseObject;
+      pointerOffset = other.pointerOffset;
+      _currentObject = other._currentObject;
+      memory.setPointer(offset, this);
+    } else {
+      setFromInt(memory.getUInt64(offset));
+    }
+    return this;
+  }
+
+
+  DartCPointer.fromUInt64(int intVal) : super.alloc(8) {
+    setFromInt(intVal);
   }
 
   /**
@@ -746,7 +785,8 @@ class DartCPointer extends DartCObject {
    */
   DartCPointer.atOffset(DartCPointer other, int deltaOffset) : super.alloc(8) {
     baseObject = other.baseObject;
-    offset = other.offset + deltaOffset;
+    pointerOffset = other.pointerOffset + deltaOffset;
+    memory.setPointer(offset, this);
   }
   DartCPointer copy() {
     return new DartCPointer.atOffset(this, 0);
