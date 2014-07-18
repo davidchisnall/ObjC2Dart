@@ -745,6 +745,9 @@ class DartCPointer extends DartCObject {
     baseObject = other.baseObject;
     offset = other.offset + deltaOffset;
   }
+  DartCPointer copy() {
+    return new DartCPointer.atOffset(this, 0);
+  }
 
   DartCPointer operator +(DartCInteger other) => new DartCPointer.atOffset(this,
       other.intValue());
