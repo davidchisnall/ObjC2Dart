@@ -410,11 +410,11 @@ public:
   }
 
   bool TraverseIfStmt(IfStmt *s) {
-    OS << "if (";
+    OS << "if ((";
     if (!TraverseStmt(s->getCond())) {
       return false;
     }
-    OS << ") {\n";
+    OS << ").intValue() != 0) {\n";
     OS.increaseIndentationLevel().indent();
     if (!TraverseStmt(s->getThen())) {
       return false;
@@ -435,11 +435,11 @@ public:
     if (!TraverseStmt(s->getBody())) {
       return false;
     }
-    OS << "while (";
+    OS << "while ((";
     if (!TraverseStmt(s->getCond())) {
       return false;
     }
-    OS << ")";
+    OS << ").intValue() != 0)";
     return true;
   }
 
@@ -448,11 +448,11 @@ public:
     if (!TraverseStmt(s->getInit())) {
       return false;
     }
-    OS << "; ";
+    OS << "; (";
     if (!TraverseStmt(s->getCond())) {
       return false;
     }
-    OS << "; ";
+    OS << ").intValue() != 0 ; ";
     if (!TraverseStmt(s->getInc())) {
       return false;
     }
