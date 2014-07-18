@@ -155,27 +155,27 @@ class DartCMemory {
   }
   void setUInt32(int offset, int value) {
     checkPointers(offset, 4);
-    data.setUint64(offset, value);
+    data.setUint32(offset, value);
   }
   void setInt32(int offset, int value) {
     checkPointers(offset, 4);
-    data.setInt64(offset, value);
+    data.setInt32(offset, value);
   }
   void setUInt16(int offset, int value) {
     checkPointers(offset, 2);
-    data.setUint64(offset, value);
+    data.setUint16(offset, value);
   }
   void setInt16(int offset, int value) {
     checkPointers(offset, 2);
-    data.setInt64(offset, value);
+    data.setInt16(offset, value);
   }
   void setUInt8(int offset, int value) {
     checkPointers(offset, 1);
-    data.setUint64(offset, value);
+    data.setUint8(offset, value);
   }
   void setInt8(int offset, int value) {
     checkPointers(offset, 1);
-    data.setInt64(offset, value);
+    data.setInt8(offset, value);
   }
   void setFloat32(int offset, double value) {
     checkPointers(offset, 4);
