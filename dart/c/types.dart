@@ -229,7 +229,7 @@ abstract class DartCObject {
   /**
    * The offset within the memory of the start of this object.
    */
-  int offset;
+  int offset = 0;
 
   /**
    * The address.
