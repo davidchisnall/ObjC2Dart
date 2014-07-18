@@ -714,7 +714,7 @@ class DartCPointer extends DartCObject {
    * Returns the pointer interpreted as an integer
    */
   int intValue() {
-    if (_currentObject == 0) {
+    if (_currentObject == null) {
       return pointerOffset;
     }
     // This will implicitly insert the base memory in the object map,
