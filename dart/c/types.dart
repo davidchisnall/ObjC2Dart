@@ -57,7 +57,7 @@ class DartCMemory {
     }
     // TODO: Pluggable policies for pointers that we're trying to reconstruct
     // from integers
-    return new DartCPointer.fromUInt64(ptr);
+    return new DartCPointer.fromUInt64(offset);
   }
   /**
    * Get a pointer value.  If no pointer was stored here, then try to calculate
