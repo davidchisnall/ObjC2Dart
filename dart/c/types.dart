@@ -115,27 +115,27 @@ class DartCMemory {
   }
   int getUInt32(int offset) {
     checkPointers(offset, 4);
-    return data.getUint64(offset);
+    return data.getUint32(offset);
   }
   int getInt32(int offset) {
     checkPointers(offset, 4);
-    return data.getInt64(offset);
+    return data.getInt32(offset);
   }
   int getUInt16(int offset) {
     checkPointers(offset, 2);
-    return data.getUint64(offset);
+    return data.getUint16(offset);
   }
   int getInt16(int offset) {
     checkPointers(offset, 2);
-    return data.getInt64(offset);
+    return data.getInt16(offset);
   }
   int getUInt8(int offset) {
     checkPointers(offset, 1);
-    return data.getUint64(offset);
+    return data.getUint8(offset);
   }
   int getInt8(int offset) {
     checkPointers(offset, 1);
-    return data.getInt64(offset);
+    return data.getInt8(offset);
   }
   double getFloat32(int offset) {
     checkPointers(offset, 4);
