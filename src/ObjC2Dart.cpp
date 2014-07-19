@@ -373,6 +373,9 @@ public:
 
 #pragma mark Statements
 
+  bool TraverseStmt(const Stmt *S) {
+    return TraverseStmt(const_cast<Stmt*>(S));
+  }
   bool TraverseStmt(Stmt *s) {
     if (!s)
       return true;
