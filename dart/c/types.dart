@@ -394,6 +394,12 @@ abstract class DartCInteger extends DartCArithmetic {
       other.intValue());
   DartCInteger operator /(DartCInteger other) => constructFromInt(intValue() ~/
       other.intValue());
+  DartCInteger operator&(DartCInteger other) =>
+      constructFromInt(intValue() &
+            other.intValue());
+  DartCInteger operator|(DartCInteger other) =>
+      constructFromInt(intValue() |
+            other.intValue());
   DartCInteger inc() {
     setIntValue(intValue() + 1);
     return this;
@@ -402,6 +408,7 @@ abstract class DartCInteger extends DartCArithmetic {
     setIntValue(intValue() - 1);
     return this;
   }
+  DartCInteger neg() => constructFromInt(0-intValue());
   DartCInteger operator <<(DartCInteger other) => constructFromInt(intValue() <<
       other.intValue());
   DartCInteger operator >>(DartCInteger other) => constructFromInt(intValue() >>
