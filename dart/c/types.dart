@@ -415,11 +415,14 @@ abstract class DartCInteger extends DartCArithmetic {
   DartCObject signedShortValue() => new DartCUnsignedShort.fromInt(intValue());
   DartCObject unsignedIntValue() => new DartCUnsignedInt.fromInt(intValue());
   DartCObject signedIntValue() => new DartCUnsignedInt.fromInt(intValue());
-  DartCObject unsignedLongValue() => new DartCUnsignedLong.fromInt(intValue());
-  DartCObject signedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject unsignedLongValue() => new DartCUnsignedLong.fromInt(intValue()
+      ).copyPointerFrom(this);
+  DartCObject signedLongValue() => new DartCUnsignedLong.fromInt(intValue()
+      ).copyPointerFrom(this);
   DartCObject floatValue() => new DartCFloat.fromNum(intValue());
   DartCObject doubleValue() => new DartCDouble.fromNum(intValue());
-  DartCPointer pointerValue() => memory.getPointerFromInteger(offset, intValue());
+  DartCPointer pointerValue() => memory.getPointerFromInteger(offset, intValue()
+      );
 
 }
 abstract class DartCFloating extends DartCArithmetic {
