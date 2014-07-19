@@ -379,11 +379,20 @@ public:
   bool TraverseStmt(Stmt *s) {
     if (!s)
       return true;
-    else if (BinaryOperator *BO = dyn_cast<BinaryOperator>(s))
+    // If this is an expression that we can statically evaluate, let's do that.
+    if (Expr *E = dyn_cast<Expr>(s)) {
+      llvm::APSInt Result;
+      if (E->EvaluateAsInt(Result, C)) {
+        OS << "(new " << DartCClassForCBuiltin(E->getType()) <<
+          ".fromInt(" << Result << "))";
+        return true;
+      }
+    }
+    if (BinaryOperator *BO = dyn_cast<BinaryOperator>(s))
       return TraverseBinaryOperator(BO);
-    else if (UnaryOperator *UO = dyn_cast<UnaryOperator>(s))
+    if (UnaryOperator *UO = dyn_cast<UnaryOperator>(s))
       return TraverseUnaryOperator(UO);
-    else if (CastExpr *CE = dyn_cast<CastExpr>(s))
+    if (CastExpr *CE = dyn_cast<CastExpr>(s))
       return TraverseCastExpr(CE);
     return RecursiveASTVisitor::TraverseStmt(s);
   }
