@@ -510,6 +510,11 @@ class DartCComposite extends DartCObject {
   DartCComposite.fromMemory(DartCMemory mem, int size, int offset) : super(mem,
       size, offset);
   DartCComposite.alloc(int size) : super.alloc(size);
+  DartCComposite.fromCString(List<int> bytes) : super.alloc(bytes.length) {
+    for (int i=0 ; i<bytes.length ; i++) {
+      memory.setUInt8(i, bytes[i]);
+    }
+  }
   DartCObject unsignedCharAtOffset(int anOffset) =>
       new DartCUnsignedChar.fromMemory(memory, offset + anOffset);
   DartCObject signedCharAtOffset(int anOffset) =>

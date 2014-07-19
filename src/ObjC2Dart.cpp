@@ -815,6 +815,15 @@ public:
 
 #pragma mark Literals
 
+  bool VisitStringLiteral(StringLiteral *S) {
+    StringRef Bytes = S->getBytes();
+    OS << "(new DartCComposite.fromCString([";
+    for (int Byte : Bytes)
+      OS << Byte << ", ";
+    OS << "0]))";
+    return true;
+  }
+
   bool VisitIntegerLiteral(IntegerLiteral *il) {
     OS << "(new " << DartCClassForCBuiltin(il->getType()) <<
           ".fromInt(" << il->getValue() << "))";
