@@ -656,9 +656,9 @@ public:
       case BO_ShlAssign:
         IsAssign = true;
       // These operators are the same in dart and C:
-      case BO_And: case BO_Xor: case BO_Or: case BO_LAnd: case BO_LOr:
-      case BO_Mul: case BO_Div: case BO_Rem: case BO_Add: case BO_Sub:
-      case BO_LT: case BO_GT: case BO_LE: case BO_GE: case BO_Shl: case BO_Shr:
+      case BO_And: case BO_Xor: case BO_Or: case BO_Mul: case BO_Div:
+      case BO_Rem: case BO_Add: case BO_Sub: case BO_LT: case BO_GT:
+      case BO_LE: case BO_GE: case BO_Shl: case BO_Shr:
         if (IsAssign)
           Opc = BinaryOperator::getOpForCompoundAssignment(Opc);
         return emitSimpleBinOp(LHS, RHS,
