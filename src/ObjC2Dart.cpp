@@ -422,6 +422,16 @@ public:
     return ret;
   }
 
+  bool TraverseWhileStmt(WhileStmt *S) {
+    OS << "while ((";
+    bool ret = TraverseStmt(S->getCond());
+    OS << ").intValue() != 0)\n";
+    OS.increaseIndentationLevel().indent();
+    ret &= TraverseStmt(S->getBody());
+    OS.decreaseIndentationLevel().indent();
+    return ret;
+  }
+
   bool TraverseDoStmt(DoStmt *s) {
     OS << "do ";
     if (!TraverseStmt(s->getBody())) {
