@@ -482,8 +482,6 @@ public:
         OS << "/* va_end */";
         return true;
       }
-      e->dump();
-      return false;
     }
     bool ret = TraverseStmt(e->getCallee());
     const FunctionProtoType *FT =
