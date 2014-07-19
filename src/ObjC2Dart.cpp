@@ -690,10 +690,16 @@ public:
     }
   }
 
-  bool TraverseUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *e) {
-    e->dump();
-    abort();
-    return false;
+  bool TraverseUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *E) {
+    QualType TypeToSize = E->getTypeOfArgument();
+    if (C.getAsVariableArrayType(TypeToSize)) {
+      // VLAs not supported.
+      return false;
+    }
+    // size_t is unsigned long
+    OS << "(new DartCUnsignedLong.fromInt(" << E->EvaluateKnownConstInt(C) <<
+      "))";
+    return true;
   }
 
   bool TraverseArraySubscriptExpr(ArraySubscriptExpr *e) {
