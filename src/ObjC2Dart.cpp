@@ -646,6 +646,10 @@ public:
       case BO_Assign:
         // This is an assignment, but it's not also an operation
         return emitSimpleBinOp(LHS, RHS, ".set", false);
+      case BO_LAnd:
+        return emitSimpleBinOp(LHS, RHS, ".and", false);
+      case BO_LOr:
+        return emitSimpleBinOp(LHS, RHS, ".or", false);
       case BO_MulAssign: case BO_DivAssign: case BO_RemAssign:
       case BO_AddAssign: case BO_SubAssign: case BO_AndAssign:
       case BO_XorAssign: case BO_OrAssign: case BO_ShrAssign:

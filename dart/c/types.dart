@@ -355,6 +355,10 @@ abstract class DartCInteger extends DartCArithmetic {
     return i;
   }
 
+  DartCArithmetic and(DartCInteger other) => new DartCSignedInt.fromInt(
+      ((intValue() != 0) && (other.intValue() != 0)) ? 1 : 0);
+  DartCArithmetic or(DartCInteger other) => new DartCSignedInt.fromInt(
+      ((intValue() != 0) || (other.intValue() != 0)) ? 1 : 0);
   DartCArithmetic operator <(DartCInteger other) => new DartCSignedInt.fromInt(
       (intValue() < other.intValue()) ? 1 : 0);
   DartCArithmetic eq(DartCInteger other) => new DartCSignedInt.fromInt(
