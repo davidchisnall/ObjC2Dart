@@ -734,6 +734,10 @@ public:
       case UO_Deref:
         OS << ".dereference()";
         break;
+      case UO_Minus:
+        OS << ".neg()";
+      case UO_Plus:
+        break;
     }
     return Ret;
   }
