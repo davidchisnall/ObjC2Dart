@@ -822,6 +822,17 @@ class DartCPointer extends DartCObject {
   DartCPointer operator -(DartCInteger other) => new DartCPointer.atOffset(this,
       other.intValue());
 
+  DartCPointer inc() {
+    pointerOffset++;
+    _currentObject = null;
+    return this;
+  }
+
+  DartCPointer dec() {
+    pointerOffset--;
+    _currentObject = null;
+    return this;
+  }
 
   DartCObject index(DartCInteger index) {
     DartCObject obj = dereference();
