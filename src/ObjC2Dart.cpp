@@ -312,15 +312,7 @@ public:
           if (!TraverseType(d->getType())) {
             return false;
           }
-          if (TypeIsDartClass(d->getType())) {
-            OS << "()";
-          } else {
-            if (((d->getType()).getTypePtr())->isPointerType()) {
-              OS << ".local(C__TYPE_DEFINITION.int64_t)";
-            } else {
-              OS << ".local()";
-            }
-          }
+          OS << "()";
         }
       }
       return true;
