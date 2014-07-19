@@ -730,10 +730,10 @@ class DartCPointer extends DartCObject {
    */
   DartCObject dereference() {
     if (_currentObject == null) {
-      if (offset == 0) {
+      if (pointerOffset == 0) {
         _currentObject = baseObject;
       } else {
-        _currentObject = baseObject.constructAtOffset(0);
+        _currentObject = baseObject.constructAtOffset(pointerOffset);
       }
     }
     return _currentObject;
