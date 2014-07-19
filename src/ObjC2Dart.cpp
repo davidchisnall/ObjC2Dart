@@ -478,6 +478,77 @@ public:
     return TraverseStmt(s->getBody());
   }
 
+  bool TraverseBreakStmt(BreakStmt *S) {
+    OS << "break";
+    return true;
+  }
+  bool TraverseContinueStmt(ContinueStmt *S) {
+    OS << "continue";
+    return true;
+  }
+  int SwitchLabels = 1;
+  bool TraverseSwitchStmt(SwitchStmt *S) {
+    OS << "switch (";
+    bool Ret = TraverseStmt(S->getCond());
+    OS << ".intValue()) {\n";
+    OS.increaseIndentationLevel().indent();
+    // If there's a default statement, then we must emit it last (Dart
+    // requirement), so keep track of it and emit it at the end
+    const DefaultStmt *Default = nullptr;
+    int DefaultFallthroughTarget;
+    llvm::SmallVector<const SwitchCase*, 8> Cases;
+    for (SwitchCase *Case = S->getSwitchCaseList() ; Case ; Case =
+        Case->getNextSwitchCase())
+      Cases.push_back(Case);
+    std::reverse(Cases.begin(), Cases.end());
+    int Left = Cases.size();
+    for (const SwitchCase *Case : Cases) {
+      Left--;
+      if (isa<DefaultStmt>(Case)) {
+        Default = cast<DefaultStmt>(Case);
+        Case = Case->getNextSwitchCase();
+        DefaultFallthroughTarget = SwitchLabels;
+        continue;
+      }
+      const CaseStmt *CS = cast<CaseStmt>(Case);
+      llvm::APSInt Result;
+      Ret = CS->getLHS()->EvaluateAsInt(Result, C);
+      OS << "label" << SwitchLabels++ << ": case ";
+      OS << Result << ":\n";
+      OS.increaseIndentationLevel().indent();
+      Ret &= TraverseStmt(CS->getSubStmt());
+      OS << ";\n";
+      OS.indent();
+      if (Left)
+        OS << "continue label" << SwitchLabels << ";\n";
+      else
+        OS << "break;\n";
+      OS.decreaseIndentationLevel().indent();
+    }
+    if (SwitchLabels == DefaultFallthroughTarget)
+      DefaultFallthroughTarget = 0;
+    if (Default) {
+      OS << "label" << SwitchLabels++ << ": default:\n";
+      OS.increaseIndentationLevel().indent();
+      Ret &= TraverseStmt(Default->getSubStmt());
+      OS << ";\n";
+      if (DefaultFallthroughTarget) {
+        OS.indent();
+        OS << "continue label" << DefaultFallthroughTarget << ";\n";
+        OS.decreaseIndentationLevel().indent();
+      }
+    }
+    OS << '\n';
+    OS.decreaseIndentationLevel().indent();
+    OS << '}';
+    return Ret;
+  }
+  bool TraverseDefaultStmt(DefaultStmt *CS) {
+    return true;
+  }
+  bool TraverseCaseStmt(CaseStmt *CS) {
+    return true;
+  }
 #pragma mark Expressions
 
   bool TraverseVAArgExpr(VAArgExpr *E) {
