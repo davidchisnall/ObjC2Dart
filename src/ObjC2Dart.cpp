@@ -493,15 +493,24 @@ public:
         return true;
       }
     }
-    bool ret = TraverseStmt(e->getCallee());
+    bool IsIndirect = false;;
+    bool ret = true;
+    if (FunctionDecl *FD = e->getDirectCallee()) {
+      OS << FD->getNameAsString() << '(';
+    } else {
+      OS << "Function.apply((";
+      ret = TraverseStmt(e->getCallee());
+      OS << ").getFunction(), [";
+      IsIndirect = true;
+    }
+    QualType CalleeTy = e->getCallee()->IgnoreParenCasts()->getType();
+    if (const PointerType *PT = CalleeTy->getAs<PointerType>())
+      CalleeTy = PT->getPointeeType();
     const FunctionProtoType *FT =
-      e->getCallee()->IgnoreParenCasts()->getType()->getAs<FunctionProtoType>();
+      CalleeTy->getAs<FunctionProtoType>();
     int NonVariadicArgs = INT_MAX;
-    if (!FT)
-      NonVariadicArgs = 0;
-    else if (FT->isVariadic())
+    if (FT && FT->isVariadic())
       NonVariadicArgs = FT->getNumParams();
-    OS << "(";
     for (CallExpr::arg_iterator it = e->arg_begin(), end = e->arg_end();
          it != end; ++it) {
       NonVariadicArgs--;
@@ -515,7 +524,9 @@ public:
       }
     }
     if (NonVariadicArgs <= 0)
-      OS << " ]";
+      OS << ']';
+    if (IsIndirect)
+      OS << ']';
     OS << ")";
     return ret;
   }
@@ -554,9 +565,13 @@ public:
         break;
       case CK_LValueToRValue:
       case CK_NoOp:
-        // This isn't quite right, we should be stripping out this cast in the CallExpr
+        ret = TraverseStmt(E->getSubExpr());
+        break;
       case CK_FunctionToPointerDecay:
-        return TraverseStmt(E->getSubExpr());
+        OS << "(new DartCFunctionPointer.pointerTo(";
+        ret = TraverseStmt(E->getSubExpr());
+        OS << "))";
+        break;
       // Cast types that produce arithmetic types
       case CK_IntegralCast:
       case CK_FloatingToIntegral:
@@ -768,7 +783,10 @@ public:
   }
 
   bool TraversePointerType(PointerType *t) {
-    OS << "DartCPointer";
+    if (t->isFunctionPointerType())
+      OS << "DartCFunctionPointer";
+    else
+      OS << "DartCPointer";
     return true;
   }
 

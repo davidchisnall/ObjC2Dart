@@ -52,12 +52,12 @@ class DartCMemory {
 
   Map<int, DartCPointer> pointers;
 
-  void setPointer(int offset, DartCPointer ptr) {
+  void setPointer(int offset, DartCAbstractPointer ptr) {
     pointers[offset] = ptr;
   }
 
-  DartCPointer getPointerFromInteger(int offset, int ptr) {
-    DartCPointer ptr = pointers[offset];
+  DartCAbstractPointer getPointerFromInteger(int offset, int ptr) {
+    DartCAbstractPointer ptr = pointers[offset];
     if (ptr != null) {
       return ptr;
     }
@@ -69,7 +69,7 @@ class DartCMemory {
    * Get a pointer value.  If no pointer was stored here, then try to calculate
    * one from the data.
    */
-  DartCPointer getPointer(int offset) {
+  DartCAbstractPointer getPointer(int offset) {
     if (offset + 8 > _bytes) {
       return null;
     }
@@ -719,6 +719,10 @@ class DartCUnsignedLong extends DartCInteger {
       new DartCUnsignedInt.fromMemory(memory, offset + anOffset);
 }
 
+abstract class DartCAbstractPointer extends DartCObject {
+  DartCAbstractPointer.alloc(int size) : super.alloc(size) {}
+}
+
 /**
  * A C pointer.  C pointers either refer to a valid object, one element past a
  * valid object, or to null.  In this implementation, they can also hold
@@ -729,7 +733,7 @@ class DartCUnsignedLong extends DartCInteger {
  * reinterpreting the data, constructing a new underlying object backed by some
  * existing memory.
  */
-class DartCPointer extends DartCObject {
+class DartCPointer extends DartCAbstractPointer {
   /**
    * The object that this is currently pointing to, or null if there is no such
    * object.
@@ -779,12 +783,12 @@ class DartCPointer extends DartCObject {
     memory.setPointer(0, this);
   }
 
-  factory DartCPointer.fromMemory(DartCMemory memory, int offset) {
-    DartCPointer ptr = memory.getPointer(offset);
+  factory DartCPointer.fromMemory(DartCMemory mem, int off) {
+    DartCPointer ptr = memory.getPointer(off);
     if (ptr != null) {
       return ptr;
     }
-    return new DartCPointer.fromUInt64(memory.getUInt64(offset));
+    return new DartCPointer.fromUInt64(mem.getUInt64(off));
   }
 
   void setFromInt(int intVal) {
@@ -920,4 +924,151 @@ class DartCPointer extends DartCObject {
 
   DartCObject constructAtOffset(int anOffset) => memory.getPointer(offset +
       anOffset);
+}
+
+class DartCFunctionPointer extends DartCAbstractPointer {
+  /**
+   * The object that this is currently pointing to, or null if there is no such
+   * object.
+   */
+  Function baseObject;
+  /*
+   * The object this pointer points to.
+   */
+  DartCObject dereference() {
+    throw new ArgumentError("Derferencing function pointer not allowed");
+  }
+  Function getFunction() {
+    return baseObject;
+  }
+
+  /**
+   * Returns the pointer interpreted as an integer
+   */
+  int intValue() {
+    throw new ArgumentError("Function pointer to integer casts not (yet) allowed");
+  }
+
+  /**
+   * Initialises a new pointer pointing to a specific object.
+   */
+  DartCFunctionPointer.pointerTo(Function this.baseObject)
+      : super.alloc(8) {
+    memory.setPointer(0, this);
+  }
+
+  factory DartCFunctionPointer.fromMemory(DartCMemory memory, int offset) {
+    DartCFunctionPointer ptr = memory.getPointer(offset);
+    if (ptr != null) {
+      return ptr;
+    }
+    throw new ArgumentError("Function pointer from integer casts not (yet) allowed");
+  }
+
+  void setFromInt(int intVal) {
+    throw new ArgumentError("Function pointer from integer casts not (yet) allowed");
+  }
+
+  DartCFunctionPointer set(DartCObject newValue) {
+    // Make sure that we're copying from an object that is the same size.
+    assert(sizeof == newValue.sizeof);
+    DartCFunctionPointer other = newValue.memory.getPointer(newValue.offset);
+    if (other != null) {
+      baseObject = other.baseObject;
+      memory.setPointer(offset, this);
+    } else {
+      throw new ArgumentError("Function pointer from integer casts not (yet) allowed");
+    }
+    return this;
+  }
+
+
+  DartCFunctionPointer.fromUInt64(int intVal) : super.alloc(8) {
+    setFromInt(intVal);
+  }
+
+  /**
+   * Construct a new pointer that is at a given offset from another.
+   *
+   * Note that this method *is* allowed to construct invalid pointers and so
+   * must not dereference the pointer.
+   */
+  DartCFunctionPointer.atOffset(DartCFunctionPointer other, int deltaOffset) : super.alloc(8) {
+    throw new ArgumentError("Function pointer arithmetic not allowed");
+  }
+  DartCFunctionPointer copy() {
+    return new DartCFunctionPointer.pointerTo(baseObject);
+  }
+
+  DartCFunctionPointer operator +(DartCInteger other) {
+    throw new ArgumentError("Function pointer arithmetic not allowed");
+  }
+  DartCFunctionPointer operator -(DartCInteger other) {
+    throw new ArgumentError("Function pointer arithmetic not allowed");
+  }
+
+  DartCFunctionPointer inc() {
+    throw new ArgumentError("Function pointer arithmetic not allowed");
+  }
+
+  DartCFunctionPointer dec() {
+    throw new ArgumentError("Function pointer arithmetic not allowed");
+  }
+
+  DartCObject index(DartCInteger index) {
+    throw new ArgumentError("Function pointer arithmetic not allowed");
+  }
+
+  DartCObject unsignedCharValue() => new DartCUnsignedChar.fromInt(intValue());
+  DartCObject signedCharValue() => new DartCSignedChar.fromInt(intValue());
+  DartCObject unsignedShortValue() => new DartCUnsignedShort.fromInt(intValue()
+      );
+  DartCObject signedShortValue() => new DartCUnsignedShort.fromInt(intValue());
+  DartCObject unsignedIntValue() => new DartCUnsignedInt.fromInt(intValue());
+  DartCObject signedIntValue() => new DartCUnsignedInt.fromInt(intValue());
+  DartCObject unsignedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject signedLongValue() => new DartCUnsignedLong.fromInt(intValue());
+  DartCObject floatValue() => new DartCFloat.fromNum(intValue());
+  DartCObject doubleValue() => new DartCDouble.fromNum(intValue());
+
+  DartCFunctionPointer unsignedCharPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer signedCharPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer unsignedShortPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer signedShortPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer unsignedIntPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer signedIntPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer unsignedLongPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer signedLongPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer floatPointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer doublePointerCast() {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+  DartCFunctionPointer compositePointerCast(int size) {
+    throw new ArgumentError("Function pointer to data casts not allowed");
+  }
+
+  DartCObject constructAtOffset(int anOffset) {
+    if (offset == 0) {
+      return copy();
+    }
+    throw new ArgumentError("Function pointer arithmetic not allowed");
+  }
 }
