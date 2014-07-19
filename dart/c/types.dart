@@ -757,7 +757,7 @@ class DartCPointer extends DartCObject {
     memory.setPointer(0, this);
   }
 
-  factory DartCPointer.fromMemory(DartCMemory memory, int offset)  {
+  factory DartCPointer.fromMemory(DartCMemory memory, int offset) {
     DartCPointer ptr = memory.getPointer(offset);
     if (ptr != null) {
       return ptr;
