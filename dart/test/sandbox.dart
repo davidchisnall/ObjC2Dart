@@ -2,33 +2,46 @@ import '../libc/libc.dart';
 
 import 'dart:io';
 
-DartCSignedLong binsearch(DartCPointer v, DartCSignedLong start, DartCSignedLong end, DartCSignedLong s) {
-  if (start == end) {
-    return start;
+DartCSignedInt binsearch(DartCPointer v, DartCSignedInt n, DartCSignedInt s) {
+  DartCSignedInt p = new DartCSignedInt();
+  for (p.set((new DartCSignedInt.fromInt(1))); (p < (n)).intValue() != 0; p.set(
+      p << ((new DartCSignedInt.fromInt(1)))));
+  DartCSignedInt r = new DartCSignedInt();
+  for (r.set((new DartCSignedInt.fromInt(0))); (p >
+      ((new DartCSignedInt.fromInt(0)))).intValue() != 0; p.set(p >>
+      ((new DartCSignedInt.fromInt(1))))) {
+    if ((r + (p) < (n).and(v.index(r + (p)) <= (s))).intValue() != 0) {
+      {
+        r.set(r + (p));
+      }
+
+    } else {
+      {
+      }
+
+    }
+
   }
-   else ;
-  DartCSignedLong middle = start + end / (new DartCSignedLong.fromInt(2));
-  if (v.index(middle) < s) {
-    return binsearch(v, middle + (new DartCSignedLong.fromInt(1)), end, s);
-  }
-   else {
-    return binsearch(v, start, middle, s);
-  }
-  ;
+
+  return (r).copy();
 }
-void test(DartCSignedLong n) {
-  DartCPointer v = malloc(n * (new DartCSignedLong.fromInt(8)));
-  for (DartCSignedLong i = (new DartCSignedLong.fromInt(0)); i < n; i.inc()) {
+void test(DartCSignedInt n) {
+  DartCPointer v = (malloc(((n).unsignedLongValue() *
+      ((new DartCUnsignedLong.fromInt(4)))).copy())).signedIntPointerCast();
+  for (DartCSignedInt i = (new DartCSignedInt.fromInt(0)); (i < (n)).intValue()
+      != 0; i.inc()) {
     v.index(i).set(i);
   }
-  ;
-  DartCSignedLong p = binsearch(v, (new DartCSignedLong.fromInt(0)), n, n / (new DartCSignedLong.fromInt(3)));
-  free(v);
+
+  DartCSignedInt p = binsearch((v).copy(), (n).copy(), (n /
+      ((new DartCSignedInt.fromInt(3)))).copy());
+  free(((v).unsignedCharPointerCast()).copy());
 }
+
 
 
 void main() {
   DateTime t = new DateTime.now();
-  test(new DartCSignedLong.fromInt(200));
+  test(new DartCSignedInt.fromInt(200));
   stdout.write("${(new DateTime.now()).difference(t).inMilliseconds} ");
 }
