@@ -258,7 +258,7 @@ abstract class DartCObject {
   /**
    * Sets the given value in the memory of the variable.
    */
-  DartCObject set(DartCObject newValue) {
+  dynamic set(DartCObject newValue) {
     // Make sure that we're copying from an object that is the same size.
     assert(sizeof == newValue.sizeof);
     memory.memcpy(newValue.memory, offset, newValue.offset, sizeof);
@@ -280,15 +280,15 @@ abstract class DartCObject {
    * Returns a copy of this object.  Calls and returns in C are by value and so
    * will call this method do duplicate the underlying object.
    */
-  DartCObject copy();
-  DartCObject inc();
-  DartCObject dec();
-  DartCObject postinc() {
+  dynamic copy();
+  dynamic inc();
+  dynamic dec();
+  dynamic postinc() {
     DartCObject old = copy();
     inc();
     return old;
   }
-  DartCObject postdec() {
+  dynamic postdec() {
     DartCObject old = copy();
     dec();
     return old;
