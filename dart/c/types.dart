@@ -835,6 +835,56 @@ class DartCPointer extends DartCObject {
   DartCObject floatValue() => new DartCFloat.fromNum(intValue());
   DartCObject doubleValue() => new DartCDouble.fromNum(intValue());
 
+  DartCPointer unsignedCharPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCUnsignedChar.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer signedCharPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCSignedChar.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer unsignedShortPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCUnsignedShort.fromMemory(obj.memory, obj.offset).addressOf(
+        );
+  }
+  DartCPointer signedShortPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCSignedShort.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer unsignedIntPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCUnsignedInt.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer signedIntPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCSignedInt.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer unsignedLongPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCUnsignedLong.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer signedLongPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCSignedLong.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer floatPointerCast() {
+    DartCObject obj = dereference();
+    return new DartCFloat.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer doublePointerCast() {
+    DartCObject obj = dereference();
+    return new DartCDouble.fromMemory(obj.memory, obj.offset).addressOf();
+  }
+  DartCPointer compositePointerCast(int size) {
+    DartCObject obj = dereference();
+    return new DartCComposite.fromMemory(obj.memory, size, obj.offset
+        ).addressOf();
+  }
+
+
+
+
   DartCObject constructAtOffset(int anOffset) => memory.getPointer(offset +
       anOffset);
 }
