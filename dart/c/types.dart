@@ -69,9 +69,12 @@ class DartCMemory {
    * Get a pointer value.  If no pointer was stored here, then try to calculate
    * one from the data.
    */
-  DartCPointer getPointer(int offset) => getPointerFromInteger(offset,
-      getUInt64(offset));
-
+  DartCPointer getPointer(int offset) {
+    if (offset + 8 > _bytes) {
+      return null;
+    }
+    getPointerFromInteger(offset, getUInt64(offset));
+  }
   /**
    * Fill in all pointer values that overlap the data that we're reading.
    * This ensures that we're computing numerical values for every pointer that
@@ -82,7 +85,7 @@ class DartCMemory {
     // Fast path to skip this if this has no pointers
     if (pointers.isEmpty) return;
     int start = (offset - 8).clamp(0, _bytes);
-    int end = offset + size.clamp(0, _bytes - 8);
+    int end = offset + (size+8).clamp(0, _bytes);
     for (int i = start; i <= end; i++) {
       DartCPointer ptr = pointers[i];
       if (ptr != null) {
@@ -391,6 +394,16 @@ abstract class DartCInteger extends DartCArithmetic {
       other.intValue());
   DartCInteger operator >>(DartCInteger other) => constructFromInt(intValue() >>
       other.intValue());
+  /**
+   * Helper method.  Copies a pointer value from another object.
+   */
+  DartCObject copyPointerFrom(DartCObject other) {
+    DartCPointer ptr = other.memory.getPointer(other.offset);
+    if (ptr != null) {
+      memory.setPointer(offset, ptr);
+    }
+    return this;
+  }
   /**
    * Type cast operators.
    * FIXME: These don't propagate pointers, but should!
