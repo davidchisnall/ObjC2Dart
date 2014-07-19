@@ -515,6 +515,23 @@ public:
     return true;
   }
 
+  /**
+   * Emits a pointer cast.  Assuming that we've just emitted an expression that
+   * evaluates to a pointer, cast the result to the correct kind of pointer.
+   */
+  void EmitPointerCastTo(QualType DstTy) {
+    QualType ElementTy = DstTy->getAs<PointerType>()->getPointeeType();
+    if (ElementTy->isVoidType()) {
+      OS << ".unsignedCharPointerCast()";
+      return;
+    }
+    TypeInfo TI = getTypeInfo(ElementTy);
+    OS << '.' << TI.DartCMethod << "PointerCast(";
+    if (!TI.IsBuiltin)
+      OS << ", " << TI.Size;
+    OS << ')';
+  }
+
   bool TraverseCastExpr(CastExpr *E) {
     // We treat c-style casts, implicit casts, and so on as equivalent
     // We ignore the type of the C cast and only concern ourselves with whether
@@ -544,16 +561,15 @@ public:
         OS << '(';
         ret = TraverseStmt(E->getSubExpr());
         OS << ").pointerValue()";
+        EmitPointerCastTo(DstTy);
         break;
       case CK_ArrayToPointerDecay: {
         QualType ElementTy =
           DstTy->getAs<PointerType>()->getPointeeType().getCanonicalType();
         OS << '(';
         ret = TraverseStmt(E->getSubExpr());
-        OS << ").addressOf().";
-        if (const BuiltinType *BT = dyn_cast<BuiltinType>(ElementTy))
-          OS << DartCMethodForCBuiltin(BT) << "PointerCast()";
-        // FIXME: Cast to the correct sized composite type!
+        OS << ").addressOf()";
+        EmitPointerCastTo(DstTy);
         break;
       }
       case CK_ToUnion: {
@@ -564,6 +580,17 @@ public:
         OS << "))";
         break;
       }
+      case CK_BitCast:{
+        QualType SrcTy = E->getSubExpr()->getType();
+        // Currently, bitcasts are assumed to be pointer casts
+        assert(DstTy->isPointerType());
+        assert(SrcTy->isPointerType());
+        OS << '(';
+        ret = TraverseStmt(E->getSubExpr());
+        OS << ')';
+        EmitPointerCastTo(DstTy);
+      }
+
     }
     return ret;
   }
