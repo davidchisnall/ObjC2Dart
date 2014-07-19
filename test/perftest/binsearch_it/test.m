@@ -1,4 +1,5 @@
-#include <stdlib.h>
+void *malloc(unsigned long size);
+void free(void*);
 
 int binsearch(int *v, int n, int s) {
 	int p;
