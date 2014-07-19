@@ -425,6 +425,10 @@ public:
     }
     OS << ";\n";
     OS.decreaseIndentationLevel().indent();
+    if (!s->getElse()) {
+      OS << "}\n";
+      return true;
+    }
     OS << "} else {\n";
     OS.increaseIndentationLevel().indent();
     bool ret =  TraverseStmt(s->getElse());
