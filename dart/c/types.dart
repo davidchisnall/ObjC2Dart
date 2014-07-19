@@ -73,7 +73,7 @@ class DartCMemory {
     if (offset + 8 > _bytes) {
       return null;
     }
-    getPointerFromInteger(offset, getUInt64(offset));
+    return getPointerFromInteger(offset, getUInt64(offset));
   }
   /**
    * Fill in all pointer values that overlap the data that we're reading.
