@@ -558,7 +558,12 @@ class DartCComposite extends DartCObject {
     cpy.set(this);
     return cpy;
   }
-
+  DartCObject inc() {
+    throw new ArgumentError("Increment operator invalid for composite types!");
+  }
+  DartCObject dec() {
+    throw new ArgumentError("Increment operator invalid for composite types!");
+  }
 }
 
 class DartCFloat extends DartCFloating {
