@@ -758,7 +758,8 @@ public:
   bool TraverseBuiltinType(BuiltinType *t) {
     if (t->isVoidType())
       OS << "void";
-    OS << DartCClassForCBuiltin(t);
+    else
+      OS << DartCClassForCBuiltin(t);
     return true;
   }
 
