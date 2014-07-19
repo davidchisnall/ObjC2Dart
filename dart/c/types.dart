@@ -281,6 +281,18 @@ abstract class DartCObject {
    * will call this method do duplicate the underlying object.
    */
   DartCObject copy();
+  DartCObject inc();
+  DartCObject dec();
+  DartCObject postinc() {
+    DartCObject old = copy();
+    inc();
+    return old;
+  }
+  DartCObject postdec() {
+    DartCObject old = copy();
+    dec();
+    return old;
+  }
 }
 
 /**

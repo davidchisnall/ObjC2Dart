@@ -679,29 +679,32 @@ public:
     }
   }
 
-  bool TraverseUnaryOperator(UnaryOperator *o) {
-    if (o->getOpcodeStr(o->getOpcode()).compare("*") == 0) {
-      if (!TraverseStmt(o->getSubExpr())) {
+  bool TraverseUnaryOperator(UnaryOperator *O) {
+    bool Ret = TraverseStmt(O->getSubExpr());
+    switch (O->getOpcode()) {
+      default:
+        O->dump();
         return false;
-      }
-      OS << ".dereference()";
-      return true;
-    } else if (o->getOpcodeStr(o->getOpcode()).compare("&") == 0) {
-      if (!TraverseStmt(o->getSubExpr())) {
-        return false;
-      }
-      OS << ".addressOf()";
-      return true;
-    } else if (o->getOpcodeStr(o->getOpcode()).compare("++") == 0) {
-      if (!TraverseStmt(o->getSubExpr())) {
-        return false;
-      }
-      OS << ".inc()";
-      return true;
-    } else {
-      OS << o->getOpcodeStr(o->getOpcode()) << " ";
-      return TraverseStmt(o->getSubExpr());
+      case UO_PostInc:
+        OS << ".postinc()";
+        break;
+      case UO_PostDec:
+        OS << ".postdec()";
+        break;
+      case UO_PreInc:
+        OS << ".inc()";
+        break;
+      case UO_PreDec:
+        OS << ".dec()";
+        break;
+      case UO_AddrOf:
+        OS << ".addressOf()";
+        break;
+      case UO_Deref:
+        OS << ".dereference()";
+        break;
     }
+    return Ret;
   }
 
   bool TraverseUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *E) {
